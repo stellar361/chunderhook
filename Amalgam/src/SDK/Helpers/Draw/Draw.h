@@ -34,6 +34,18 @@ enum Scale_
 	Scale_Ceil = 3
 };
 
+//	which corners FillRoundRect actually rounds (default is all four)
+enum ERoundCorners
+{
+	ROUND_TL = 1 << 0,
+	ROUND_TR = 1 << 1,
+	ROUND_BR = 1 << 2,
+	ROUND_BL = 1 << 3,
+	ROUND_ALL = ROUND_TL | ROUND_TR | ROUND_BR | ROUND_BL,
+	ROUND_LEFT = ROUND_TL | ROUND_BL,
+	ROUND_RIGHT = ROUND_TR | ROUND_BR
+};
+
 //	shared layout for every on-screen indicator (crit, ping, conditions, spectators, seed).
 //	identical font settings to the crit indicator / nitro dt bar: FONT_INDICATORS, nTall + 1, edge align
 //	the text block (nLines) is centred inside its 100 x 40 drag box
@@ -103,7 +115,7 @@ public:
 	void FillRectOutline(int x, int y, int w, int h, Color_t tColor, Color_t tColorOut = { 0, 0, 0, 255 });
 	void LineRectOutline(int x, int y, int w, int h, Color_t tColor, Color_t tColorOut = { 0, 0, 0, 255 }, bool bInside = true);
 	void FillRectPercent(int x, int y, int w, int h, float t, Color_t tColor, Color_t tColorOut = { 0, 0, 0, 255 }, EAlign eAlign = ALIGN_LEFT, bool bAdjust = false);
-	void FillRoundRect(int x, int y, int w, int h, int iRadius, Color_t tColor, int iCount = 64);
+	void FillRoundRect(int x, int y, int w, int h, int iRadius, Color_t tColor, int iCount = 64, int iCorners = ROUND_ALL);
 	void LineRoundRect(int x, int y, int w, int h, int iRadius, Color_t tColor, int iCount = 64);
 
 	void FillCircle(int x, int y, float iRadius, int iSegments, Color_t tColor);

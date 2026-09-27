@@ -96,7 +96,7 @@ IndicatorLayout_t CDraw::GetIndicatorLayout(const DragBox_t& tPos, int nLines)
 	tLayout.m_iX = tPos.x;
 	tLayout.m_iNTall = tLayout.m_pFont->m_nTall + H::Draw.Scale(1);
 
-	//	centre the whole text block inside the drag box (100 x 40)
+	//	centre the whole text block inside its drag box
 	const int iBoxH = Scale(40, Scale_Round);
 	const int iBlockH = std::max(nLines, 1) * tLayout.m_iNTall;
 	tLayout.m_iY = tPos.y + std::max(0, (iBoxH - iBlockH) / 2);
@@ -186,9 +186,10 @@ void CDraw::StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Co
 	case ALIGN_BOTTOMRIGHT: x -= vSize.x; y -= vSize.y; break;
 	}
 
-	tColorOut.a *= Math::RemapVal(tColorOut.Brightness(), 0, 255, 0.5f, 0.1f);
+	//	the outline is always solid black (#000000) at full strength
+	tColorOut.r = tColorOut.g = tColorOut.b = 0;
 	//	fonts carrying FONTFLAG_OUTLINE already bake a 1px outline into the glyphs,
-	//	so only draw our own ring for fonts that don't (stacking them would make the outline 2px thick)
+	//	so only draw our own ring for fonts that don't
 	if (tColorOut.a && !(tFont.m_nFlags & FONTFLAG_OUTLINE))
 	{
 		std::vector<std::pair<int, int>> vOutline = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 } };
@@ -228,9 +229,10 @@ void CDraw::StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Co
 	case ALIGN_BOTTOMRIGHT: x -= vSize.x; y -= vSize.y; break;
 	}
 	
-	tColorOut.a *= Math::RemapVal(tColorOut.Brightness(), 0, 255, 0.5f, 0.1f);
+	//	the outline is always solid black (#000000) at full strength
+	tColorOut.r = tColorOut.g = tColorOut.b = 0;
 	//	fonts carrying FONTFLAG_OUTLINE already bake a 1px outline into the glyphs,
-	//	so only draw our own ring for fonts that don't (stacking them would make the outline 2px thick)
+	//	so only draw our own ring for fonts that don't
 	if (tColorOut.a && !(tFont.m_nFlags & FONTFLAG_OUTLINE))
 	{
 		std::vector<std::pair<int, int>> vOutline = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 } };
@@ -322,14 +324,25 @@ void CDraw::FillRectPercent(int x, int y, int w, int h, float t, Color_t tColor,
 		FillRect(x - 1, y - 1, nw + 2, nh + 2, tColorOut);
 	FillRect(x, y, nw, nh, tColor);
 }
-void CDraw::FillRoundRect(int x, int y, int w, int h, int iRadius, Color_t tColor, int iCount)
+void CDraw::FillRoundRect(int x, int y, int w, int h, int iRadius, Color_t tColor, int iCount, int iCorners)
 {
 	std::vector<Vertex_t> vVertices = {};
+
+	//	loop order is top right, bottom right, bottom left, top left
+	static const int s_iCornerBit[4] = { ROUND_TR, ROUND_BR, ROUND_BL, ROUND_TL };
+	//	the point each square corner sits on, same order
+	static const int s_iSquareX[4] = { 1, 1, 0, 0 }, s_iSquareY[4] = { 0, 1, 1, 0 };
 
 	int _iCount = std::max(iCount / 4, 2);
 	float flDelta = 90.f / (_iCount - 1);
 	for (int i = 0; i < 4; i++)
 	{
+		if (!(iCorners & s_iCornerBit[i]))
+		{	//	kept square - just drop the rect corner in so the edges stay straight
+			vVertices.emplace_back(Vertex_t({ { float(x + w * s_iSquareX[i]), float(y + h * s_iSquareY[i]) } }));
+			continue;
+		}
+
 		const int _x = x + ((i < 2) ? (w - iRadius) : iRadius);
 		const int _y = y + ((i % 3) ? (h - iRadius) : iRadius);
 

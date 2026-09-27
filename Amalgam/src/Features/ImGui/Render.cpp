@@ -92,15 +92,18 @@ void CRender::LoadFonts()
 	FontSmall = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\verdana.ttf)", H::Draw.Scale(11), &tFontConfig);
 	FontRegular = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\verdana.ttf)", H::Draw.Scale(13), &tFontConfig);
 	FontBold = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\verdanab.ttf)", H::Draw.Scale(13), &tFontConfig);
-	FontLarge = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\verdana.ttf)", H::Draw.Scale(14), &tFontConfig);
+	//	the binds list only - Tahoma for every row and for the title
+	FontLarge = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\tahoma.ttf)", H::Draw.Scale(14), &tFontConfig);
 	FontLargeBold = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\verdanab.ttf)", H::Draw.Scale(15), &tFontConfig);
+	FontTitle = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\tahoma.ttf)", H::Draw.Scale(18), &tFontConfig);
 	FontMono = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\cour.ttf)", H::Draw.Scale(16), &tFontConfig); // windows mono font installed by default
 #else
 	FontSmall = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMedium_compressed_data, RobotoMedium_compressed_size, H::Draw.Scale(12), &tFontConfig);
 	FontRegular = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMedium_compressed_data, RobotoMedium_compressed_size, H::Draw.Scale(13), &tFontConfig);
 	FontBold = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoBlack_compressed_data, RobotoBlack_compressed_size, H::Draw.Scale(13), &tFontConfig);
-	FontLarge = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMedium_compressed_data, RobotoMedium_compressed_size, H::Draw.Scale(15), &tFontConfig);
+	FontLarge = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\tahoma.ttf)", H::Draw.Scale(14), &tFontConfig);
 	FontLargeBold = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoBlack_compressed_data, RobotoBlack_compressed_size, H::Draw.Scale(16), &tFontConfig);
+	FontTitle = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\tahoma.ttf)", H::Draw.Scale(18), &tFontConfig);
 	FontMono = io.Fonts->AddFontFromMemoryCompressedTTF(CascadiaMono_compressed_data, CascadiaMono_compressed_size, H::Draw.Scale(15), &tFontConfig);
 #endif
 

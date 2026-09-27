@@ -436,13 +436,23 @@ void CTicks::Draw(CTFPlayer* pLocal)
 		H::Draw.StringOutlined(fFont, dtPos.x, iPosY + iSizeY + H::Draw.Scale(2, Scale_Round), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, "Not Ready");
 
 	H::Draw.FillRoundRect(iPosX, iPosY, iSizeX, iSizeY, iRadius, Vars::Menu::Theme::Background.Value, 16);
-	if (iTicks > 0)
+	if (iMax > 0)
 	{
 		const int iInset = H::Draw.Scale(2, Scale_Round);
 		const int iFillX = iPosX + iInset, iFillY = iPosY + iInset;
 		const int iFillH = iSizeY - iInset * 2;
-		const int iFillW = iMax > 0 ? std::clamp(int((float(iTicks) / float(iMax)) * (iSizeX - iInset * 2)), 0, iSizeX - iInset * 2) : 0;
-		if (iFillW > 0)
-			H::Draw.FillRoundRect(iFillX, iFillY, iFillW, iFillH, std::min(iRadius, std::min(iFillW, iFillH) / 2), Vars::Menu::Theme::Accent.Value, 16);
+		const int iFillMax = iSizeX - iInset * 2;
+
+		//	a charged bar keeps both ends round; anything under that stops with a flat right edge,
+		//	so the colour always ends exactly where the ticks do
+		const bool bCharged = iTicks >= iMax;
+		int iFillW = std::clamp(int((float(iTicks) / float(iMax)) * iFillMax), 0, iFillMax);
+		if (!bCharged)
+			iFillW = std::max(iFillW, int(H::Draw.Scale(4, Scale_Round))); //	0 ticks still shows a sliver
+		iFillW = std::min(iFillW, iFillMax);
+
+		H::Draw.FillRoundRect(iFillX, iFillY, iFillW, iFillH,
+			std::min(iRadius, std::min(iFillW, iFillH) / 2), Vars::Menu::Theme::Accent.Value, 16,
+			bCharged ? ROUND_ALL : ROUND_LEFT);
 	}
 }

@@ -105,15 +105,14 @@ void CGlow::SecondEnd(Glow_t tGlow, IMatRenderContext* pRenderContext, int w, in
 	}
 	if (bPixel)
 	{
-		//	a single pixel of colour around the target; the source runs the full texture so every
-		//	sample lands on a texel centre and bilinear filtering can't blend the edge
+		//	a single pixel of colour around the target; only the four straight directions are drawn so the
+		//	ring stays as thin as it can get - diagonal edges step instead of closing up, which is fine
+		//	the source runs the full texture so every sample lands on a texel centre, no blended edges
 		auto fPixel = [&](int x, int y)
 		{
 			pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, x, y, w, h, 0.f, 0.f, w, h, w, h);
 		};
-		fPixel(-1, -1); fPixel(0, -1); fPixel(1, -1);
-		fPixel(-1, 0);               fPixel(1, 0);
-		fPixel(-1, 1);  fPixel(0, 1);  fPixel(1, 1);
+		fPixel(-1, 0); fPixel(0, -1); fPixel(1, 0); fPixel(0, 1);
 	}
 	if (flBlur)
 		pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, 0, 0, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
@@ -209,6 +208,11 @@ void CGlow::RenderSecond()
 	auto pRenderContext = I::MaterialSystem->GetRenderContext();
 	if (!pRenderContext || !m_pMatGlowColor || !m_pMatBlurX || !m_pMatBlurY || !m_pMatHaloAddToScreen)
 		return F::Materials.ReloadMaterials();
+
+	//	the stencil mask has to be written in this frame and right before it is used - doing it in
+	//	DoPostScreenSpaceEffects leaves the mask a frame (or a stencil clear) behind the content,
+	//	which shows up as a ring that is thicker on one side than the other
+	RenderFirst();
 
 	const int w = H::Draw.m_nScreenW, h = H::Draw.m_nScreenH;
 	for (auto& [tGlow, vInfo] : m_mEntities)

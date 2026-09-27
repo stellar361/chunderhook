@@ -4110,7 +4110,7 @@ void CMenu::DrawBinds()
 		SetNextWindowPos({ float(tDragBox.x), float(tDragBox.y) }, ImGuiCond_Always);
 
 	float flTypeWidth = 0, flNameWidth = 0, flKeyWidth = 0, flStateWidth = 0;
-	PushFont(F::Render.FontSmall);
+	PushFont(F::Render.FontLarge);
 	for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 	{
 		flTypeWidth = std::max(flTypeWidth, FCalcTextSize(sType.c_str()).x);
@@ -4122,7 +4122,7 @@ void CMenu::DrawBinds()
 	flTypeWidth += H::Draw.Scale(9), flNameWidth += H::Draw.Scale(9), flKeyWidth += H::Draw.Scale(9), flStateWidth += H::Draw.Scale(9);
 
 	float flWidth = flTypeWidth + flNameWidth + flKeyWidth + flStateWidth + (m_bIsOpen ? H::Draw.Scale(113) : H::Draw.Scale(14));
-	float flHeight = H::Draw.Scale(22 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 44 : 12));
+	float flHeight = H::Draw.Scale(22 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 50 : 16));
 	SetNextWindowSize({ flWidth, flHeight }, ImGuiCond_Always);
 	PushStyleVar(ImGuiStyleVar_WindowMinSize, { H::Draw.Scale(40), H::Draw.Scale(40) });
 	if (Begin("Binds", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings))
@@ -4135,11 +4135,13 @@ void CMenu::DrawBinds()
 		if (m_bIsOpen)
 			FSet(Vars::Menu::BindsDisplay, tDragBox);
 
+		//	the title and every row start on this exact left edge
+		const float flTextX = H::Draw.Scale(12);
 		int iListStart = 8;
 		if (Vars::Menu::BindWindowTitle.Value)
 		{
-			PushFont(F::Render.FontLargeBold);
-			SetCursorPos({ H::Draw.Scale(12), H::Draw.Scale(8) });
+			PushFont(F::Render.FontTitle);
+			SetCursorPos({ flTextX, H::Draw.Scale(8) });
 			FText("Binds");
 			PopFont();
 
@@ -4156,16 +4158,16 @@ void CMenu::DrawBinds()
 			iListStart = 42;
 		}
 
-		PushFont(F::Render.FontSmall);
+		PushFont(F::Render.FontLarge);
 		int i = 0; for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 		{
-			float flPosX = 0;
+			float flPosX = flTextX;
 
 			if (m_bIsOpen)
 				PushTransparent(!F::Binds.WillBeEnabled(iBind), true);
 
 			/* type */
-			SetCursorPos({ flPosX += H::Draw.Scale(12), H::Draw.Scale(iListStart + 22 * i) });
+			SetCursorPos({ flPosX, H::Draw.Scale(iListStart + 22 * i) });
 			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Accent.Value : F::Render.Inactive.Value);
 			FText(sType.c_str());
 			PopStyleColor();

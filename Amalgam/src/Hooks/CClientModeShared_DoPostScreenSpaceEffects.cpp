@@ -26,7 +26,6 @@ MAKE_HOOK(CClientModeShared_DoPostScreenSpaceEffects, U::Memory.GetVirtual(I::Cl
 		return CALL_ORIGINAL(rcx, pSetup);
 
 	F::Chams.RenderMain();
-	F::Glow.RenderFirst();
 	return CALL_ORIGINAL(rcx, pSetup);
 }
 
