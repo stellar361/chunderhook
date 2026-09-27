@@ -46,8 +46,9 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 
 			if (pGroup->m_iESP & ESPEnum::Priority)
 			{
+				//	same right hand column as the buffs / debuffs
 				if (auto pTag = F::PlayerUtils.GetSignificantTag(uAccountID, 1))
-					tCache.m_vText.emplace_back(ALIGN_TOP, pTag->m_sName, pTag->m_tColor, pTag->m_tColor.IsColorDark() ? Color_t(255, 255, 255) : Color_t(0, 0, 0), FONT_INDICATORS);
+					tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, pTag->m_sName, pTag->m_tColor, pTag->m_tColor.IsColorDark() ? Color_t(255, 255, 255) : Color_t(0, 0, 0), FONT_INDICATORS);
 			}
 
 			if (pGroup->m_iESP & ESPEnum::Labels)

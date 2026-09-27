@@ -505,7 +505,10 @@ NAMESPACE_BEGIN(Vars)
 		CVar(SpinSpeed, "Spin speed", 15.f, SLIDER_PRECISION, -30.f, 30.f);
 		CVar(MinWalk, "Minwalk", true);
 		CVar(HidePitchOnShot, "Hide pitch on shot", false);
-		CVar(HeadHitboxes, "Head hitboxes", false, VISUAL);
+		CVar(HeadHitboxReal, "Real head hitbox", false, VISUAL);
+		CVar(HeadHitboxFake, "Fake head hitbox", false, VISUAL);
+		CVar(HeadHitboxRealColor, "Real head hitbox color", Color_t(0, 255, 0, 255), VISUAL);
+		CVar(HeadHitboxFakeColor, "Fake head hitbox color", Color_t(255, 0, 0, 255), VISUAL);
 
 		CVar(AntiAimLines, "Antiaim lines", false, NOSAVE);
 	NAMESPACE_END(AntiAim)

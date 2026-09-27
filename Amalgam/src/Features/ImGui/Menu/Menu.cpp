@@ -663,12 +663,26 @@ void CMenu::MenuHVH(int iTab)
 						FSlider(Vars::AntiAim::FakeYawValue, FSliderEnum::Right);
 					}
 					PopTransparent();
+					//	local head hitboxes (real / fake), drawn in third person only
+					FToggle(Vars::AntiAim::HeadHitboxReal, FToggleEnum::Left);
+					PushTransparent(!Vars::AntiAim::Enabled.Value);
+					{
+						FToggle(Vars::AntiAim::HeadHitboxFake, FToggleEnum::Right);
+					}
+					PopTransparent();
+
+					FColorPicker(Vars::AntiAim::HeadHitboxRealColor, FColorPickerEnum::Left);
+					PushTransparent(!Vars::AntiAim::Enabled.Value);
+					{
+						FColorPicker(Vars::AntiAim::HeadHitboxFakeColor, FColorPickerEnum::Right);
+					}
+					PopTransparent();
+
 					PushTransparent(Vars::AntiAim::YawFake.Value != Vars::AntiAim::YawEnum::Spin && Vars::AntiAim::YawReal.Value != Vars::AntiAim::YawEnum::Spin);
 					{
 						FSlider(Vars::AntiAim::SpinSpeed, FSliderEnum::Left);
 					}
 					PopTransparent();
-					FToggle(Vars::AntiAim::HeadHitboxes, FToggleEnum::Left);
 					SetCursorPos({ GetWindowWidth() / 2 + GetStyle().WindowPadding.x / 2, GetRowPos() + H::Draw.Scale(8) });
 					FToggle(Vars::AntiAim::MinWalk, FToggleEnum::Left);
 				} EndSection();
@@ -4075,7 +4089,7 @@ void CMenu::DrawBinds()
 		SetNextWindowPos({ float(tDragBox.x), float(tDragBox.y) }, ImGuiCond_Always);
 
 	float flTypeWidth = 0, flNameWidth = 0, flKeyWidth = 0, flStateWidth = 0;
-	PushFont(F::Render.FontRegular);
+	PushFont(F::Render.FontLarge);
 	for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 	{
 		flTypeWidth = std::max(flTypeWidth, FCalcTextSize(sType.c_str()).x);
@@ -4103,25 +4117,25 @@ void CMenu::DrawBinds()
 		int iListStart = 8;
 		if (Vars::Menu::BindWindowTitle.Value)
 		{
-			PushFont(F::Render.FontLarge);
-			SetCursorPos({ H::Draw.Scale(12), H::Draw.Scale(7) });
+			PushFont(F::Render.FontLargeBold);
+			SetCursorPos({ H::Draw.Scale(12), H::Draw.Scale(6) });
 			FText("Binds");
 			PopFont();
 
 			//	accent divider between the title and the list, inset so it doesn't touch the edges
 			{
 				ImVec2 vDrawPos = GetDrawPos(), vSize = GetWindowSize();
-				const float flLineY = vDrawPos.y + H::Draw.Scale(26), flLineH = H::Draw.Scale(2);
+				const float flLineY = vDrawPos.y + H::Draw.Scale(26), flLineH = H::Draw.Scale(1.5);
 				GetWindowDrawList()->AddRectFilled(
-					{ vDrawPos.x + H::Draw.Scale(6), flLineY },
-					{ vDrawPos.x + vSize.x - H::Draw.Scale(6), flLineY + flLineH },
+					{ vDrawPos.x + H::Draw.Scale(10), flLineY },
+					{ vDrawPos.x + vSize.x - H::Draw.Scale(10), flLineY + flLineH },
 					F::Render.Accent, flLineH / 2.f);
 			}
 
 			iListStart = 32;
 		}
 
-		PushFont(F::Render.FontRegular);
+		PushFont(F::Render.FontLarge);
 		int i = 0; for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 		{
 			float flPosX = 0;

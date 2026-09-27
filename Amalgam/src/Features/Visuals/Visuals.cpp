@@ -479,7 +479,9 @@ void CVisuals::DrawHitboxes(int iStore)
 static std::vector<DrawBox_t> s_vLocalHeadHitboxes = {};
 void CVisuals::DrawLocalHeadHitboxes(int iStore)
 {
-	if (!Vars::AntiAim::HeadHitboxes.Value)
+	const bool bFake = Vars::AntiAim::HeadHitboxFake.Value && F::AntiAim.AntiAimOn();
+	const bool bReal = Vars::AntiAim::HeadHitboxReal.Value;
+	if (!bReal && !bFake)
 	{
 		s_vLocalHeadHitboxes.clear();
 		return;
@@ -488,6 +490,9 @@ void CVisuals::DrawLocalHeadHitboxes(int iStore)
 	if (iStore) //	bones are set up while creating commands, only stored boxes are drawn
 	{
 		s_vLocalHeadHitboxes.clear();
+
+		if (!I::Input->CAM_IsThirdPerson()) //	first person, the view is inside the head anyway
+			return;
 
 		auto pLocal = H::Entities.GetLocal();
 		if (!pLocal || !pLocal->IsAlive() || pLocal->IsAGhost())
@@ -512,17 +517,22 @@ void CVisuals::DrawLocalHeadHitboxes(int iStore)
 				vAngle, 0.f, tColor, Color_t() });
 		};
 
-		//	no anti aim -> only the real head hitbox
-		if (F::AntiAim.AntiAimOn())
+		//	setup fake bones first, it invalidates the bone cache on the way out
+		if (bFake)
 		{
 			matrix3x4 aFakeBones[MAXSTUDIOBONES];
 			if (F::FakeAngle.SetupFakeBones(pLocal, aFakeBones, F::AntiAim.vFakeAngles))
-				AddHead(aFakeBones, { 255, 0, 0, 255 }); //	fake, red
+				AddHead(aFakeBones, Vars::AntiAim::HeadHitboxFakeColor.Value);
 		}
 
-		matrix3x4 aBones[MAXSTUDIOBONES];
-		if (pLocal->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
-			AddHead(aBones, { 0, 255, 0, 255 }); //	real, green
+		if (bReal)
+		{
+			//	don't reuse whatever the fake setup left cached
+			matrix3x4 aBones[MAXSTUDIOBONES];
+			pLocal->InvalidateBoneCache();
+			if (pLocal->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+				AddHead(aBones, Vars::AntiAim::HeadHitboxRealColor.Value);
+		}
 
 		return;
 	}
