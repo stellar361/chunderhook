@@ -36,6 +36,7 @@ private:
 
 			boost::hash_combine(seed, boost::hash_value(k.Stencil));
 			boost::hash_combine(seed, boost::hash_value(k.Blur));
+			boost::hash_combine(seed, boost::hash_value(k.Style));
 
 			return seed;
 		}

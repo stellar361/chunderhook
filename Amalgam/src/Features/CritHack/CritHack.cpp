@@ -658,7 +658,7 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 			}
 		}
 		else
-			Emit(Vars::Colors::IndicatorTextBad.Value, std::format("Deal {} damage", ceilf(m_flDamageTilFlip)));
+			Emit(Vars::Colors::IndicatorTextBad.Value, std::format("deal {} damage", ceilf(m_flDamageTilFlip)));
 
 		if (m_iPotentialCrits > 0)
 		{
@@ -680,7 +680,7 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 			auto tColor = m_iDesyncDamage < 0
 				? Vars::Menu::Theme::Active.Value.Lerp(Vars::Colors::IndicatorTextMid.Value, std::min(fabsf(m_iDesyncDamage) / 100, 1.f))
 				: Vars::Colors::IndicatorTextBad.Value;
-			Emit(tColor, std::format("{}{} desync", m_iDesyncDamage > 0 ? "+" : "", m_iDesyncDamage));
+			Emit(tColor, std::format("Damage desync {}{}", m_iDesyncDamage > 0 ? "+" : "", m_iDesyncDamage));
 		}
 
 		if (Vars::Debug::Info.Value)

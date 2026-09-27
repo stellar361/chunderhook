@@ -56,9 +56,14 @@ void CGlow::SecondEnd(Glow_t tGlow, IMatRenderContext* pRenderContext, int w, in
 {
 	pRenderContext->PopRenderTargetAndViewport();
 
-	if (tGlow.Blur)
+	//	only the selected style renders, the other thicknesses are kept for when it is switched back to
+	int iStencil = tGlow.Style == GlowStyleEnum::Stencil ? tGlow.Stencil : 0;
+	float flBlur = tGlow.Style == GlowStyleEnum::Blur ? tGlow.Blur : 0.f;
+	bool bPixel = tGlow.Style == GlowStyleEnum::Pixel;
+
+	if (flBlur)
 	{
-		m_pBloomAmount->SetFloatValue(tGlow.Blur);
+		m_pBloomAmount->SetFloatValue(flBlur);
 
 		pRenderContext->PushRenderTargetAndViewport();
 		{
@@ -80,22 +85,37 @@ void CGlow::SecondEnd(Glow_t tGlow, IMatRenderContext* pRenderContext, int w, in
 	pRenderContext->SetStencilWriteMask(0x0);
 	pRenderContext->SetStencilTestMask(0xFF);
 
-	if (tGlow.Stencil)
+	if (iStencil)
 	{
-		int iSide = (tGlow.Stencil + 1) / 2.f;
-		pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, -iSide, 0, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
-		pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, 0, -iSide, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
-		pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, iSide, 0, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
-		pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, 0, iSide, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
-		if (int iCorner = tGlow.Stencil / 2.f)
+		//	same 8 draws around the silhouette as the pixel style, only the radius follows the thickness
+		//	bar; every direction uses the same radius so the ring stays even
+		const int iSide = iStencil < 1 ? 1 : iStencil;
+		auto fStencil = [&](int x, int y)
 		{
-			pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, -iCorner, -iCorner, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
-			pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, iCorner, iCorner, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
-			pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, iCorner, -iCorner, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
-			pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, -iCorner, iCorner, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
-		}
+			pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, x, y, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
+		};
+		fStencil(-iSide, 0);
+		fStencil(0, -iSide);
+		fStencil(iSide, 0);
+		fStencil(0, iSide);
+		fStencil(-iSide, -iSide);
+		fStencil(iSide, iSide);
+		fStencil(iSide, -iSide);
+		fStencil(-iSide, iSide);
 	}
-	if (tGlow.Blur)
+	if (bPixel)
+	{
+		//	a single pixel of colour around the target; the source runs the full texture so every
+		//	sample lands on a texel centre and bilinear filtering can't blend the edge
+		auto fPixel = [&](int x, int y)
+		{
+			pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, x, y, w, h, 0.f, 0.f, w, h, w, h);
+		};
+		fPixel(-1, -1); fPixel(0, -1); fPixel(1, -1);
+		fPixel(-1, 0);               fPixel(1, 0);
+		fPixel(-1, 1);  fPixel(0, 1);  fPixel(1, 1);
+	}
+	if (flBlur)
 		pRenderContext->DrawScreenSpaceRectangle(m_pMatHaloAddToScreen, 0, 0, w, h, 0.f, 0.f, w - 1, h - 1, w, h);
 
 	pRenderContext->SetStencilEnable(false);

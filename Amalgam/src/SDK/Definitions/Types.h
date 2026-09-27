@@ -1135,24 +1135,53 @@ public:
 	}
 };
 
+//	glow styles, only one of them is active at a time (each keeps its own stored thickness)
+namespace GlowStyleEnum
+{
+	enum GlowStyleEnum
+	{
+		None = 0,
+		Stencil = 1,
+		Blur = 2,
+		Pixel = 3,
+	};
+}
+
 struct Glow_t
 {
 	int Stencil = 0;
 	float Blur = 0;
+	int Style = GlowStyleEnum::None;
+
+	//	picking a style keeps whatever thickness it last had, so switching back doesn't reset it
+	inline void SetStyle(int iStyle)
+	{
+		Style = iStyle;
+		if (Style == GlowStyleEnum::Stencil && Stencil < 1)
+			Stencil = 1;
+		else if (Style == GlowStyleEnum::Blur && Blur < 1.f)
+			Blur = 1.f;
+	}
 
 	inline bool operator==(const Glow_t& t) const
 	{
-		return Stencil == t.Stencil && Blur == t.Blur;
+		return Stencil == t.Stencil && Blur == t.Blur && Style == t.Style;
 	}
 
 	inline bool operator!=(const Glow_t& t) const
 	{
-		return Stencil != t.Stencil || Blur != t.Blur;
+		return !(*this == t);
 	}
 
 	inline bool operator()() const
 	{
-		return Stencil || Blur;
+		switch (Style)
+		{
+		case GlowStyleEnum::Stencil: return Stencil > 0;
+		case GlowStyleEnum::Blur: return Blur > 0.f;
+		case GlowStyleEnum::Pixel: return true;
+		default: return false;
+		}
 	}
 };
 

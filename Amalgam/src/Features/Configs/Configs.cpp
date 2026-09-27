@@ -96,6 +96,7 @@ template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::s
 	boost::property_tree::ptree tChild;
 	SaveJson(tChild, "Stencil", v.Stencil);
 	SaveJson(tChild, "Blur", v.Blur);
+	SaveJson(tChild, "Style", v.Style);
 
 	t.put_child(s, tChild);
 }
@@ -220,6 +221,16 @@ template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const 
 	{
 		LoadJson(*tChild, "Stencil", v.Stencil);
 		LoadJson(*tChild, "Blur", v.Blur);
+
+		//	configs from before styles existed pick whichever thickness they had set, so glow doesn't just turn off
+		if (tChild->get_optional<int>("Style"))
+			LoadJson(*tChild, "Style", v.Style);
+		else if (v.Stencil > 0)
+			v.Style = GlowStyleEnum::Stencil;
+		else if (v.Blur > 0.f)
+			v.Style = GlowStyleEnum::Blur;
+		else
+			v.Style = GlowStyleEnum::None;
 	}
 }
 

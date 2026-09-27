@@ -6,7 +6,8 @@
 void CFonts::Reload(float flDPI, bool bOutline)
 {
 	//	Tahoma, weight per font, FONTFLAG_OUTLINE (512) only -> no anti-aliasing
-	//	"Cheap text" swaps the manually drawn outline for the font's own drop shadow
+	//	the 1px outline is baked into the glyphs, so StringOutlined skips its own ring for these fonts
+	//	"Cheap text" additionally swaps in the font's own drop shadow
 	int iFlags = FONTFLAG_OUTLINE;
 	if (bOutline)
 		iFlags |= FONTFLAG_DROPSHADOW;

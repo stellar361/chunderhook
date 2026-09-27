@@ -793,6 +793,35 @@ void CMenu::MenuHVH(int iTab)
 	}
 }
 
+//	glow style dropdown + the one thickness bar, which only adjusts the style that is selected
+static void DrawGlowSettings(Glow_t& tGlow, const char* sSuffix = "")
+{
+	using namespace ImGui;
+
+	auto sStyle = std::format("Style{}", sSuffix);
+	int iStyle = tGlow.Style;
+	FDropdown(sStyle.c_str(), &iStyle, { "None", "Stencil", "Blur", "Pixel" });
+	if (iStyle != tGlow.Style)
+		tGlow.SetStyle(iStyle);
+
+	auto sThickness = std::format("Thickness{}", sSuffix);
+	switch (tGlow.Style)
+	{
+	case GlowStyleEnum::Stencil:
+		FSlider(sThickness.c_str(), &tGlow.Stencil, 1, 10, 1, "%i", FSliderEnum::Min);
+		break;
+	case GlowStyleEnum::Blur:
+		FSlider(sThickness.c_str(), &tGlow.Blur, 1.f, 10.f, 1.f, "%g", FSliderEnum::Min | FSliderEnum::Precision);
+		break;
+	default:
+		//	none / pixel glow are always exactly what they are, there is nothing to adjust
+		PushDisabled(true);
+		FSlider(sThickness.c_str(), &tGlow.Stencil, 1, 10, 1, "%i", FSliderEnum::Min);
+		PopDisabled();
+		break;
+	}
+}
+
 void CMenu::MenuVisuals(int iTab)
 {
 	using namespace ImGui;
@@ -1054,16 +1083,7 @@ void CMenu::MenuVisuals(int iTab)
 				} EndSection();
 				if (Section("Glow", 8))
 				{
-					PushTransparent(!tGroup.m_tGlow.Stencil);
-					{
-						FSlider("Stencil scale", &tGroup.m_tGlow.Stencil, 0, 10, 1, "%i", FSliderEnum::Left | FSliderEnum::Min);
-					}
-					PopTransparent();
-					PushTransparent(!tGroup.m_tGlow.Blur);
-					{
-						FSlider("Blur scale", &tGroup.m_tGlow.Blur, 0.f, 10.f, 1.f, "%g", FSliderEnum::Right | FSliderEnum::Min | FSliderEnum::Precision);
-					}
-					PopTransparent();
+					DrawGlowSettings(tGroup.m_tGlow);
 				} EndSection();
 				if (Section("Misc", 8))
 				{
@@ -1087,16 +1107,7 @@ void CMenu::MenuVisuals(int iTab)
 						FMDropdown("Occluded material", &tGroup.m_tBacktrackChams.Occluded, FDropdownEnum::Right);
 
 						SetCursorPosY(GetCursorPosY() + H::Draw.Scale(8));
-						PushTransparent(!tGroup.m_tBacktrackGlow.Stencil);
-						{
-							FSlider("Stencil scale## Backtrack", &tGroup.m_tBacktrackGlow.Stencil, 0, 10, 1, "%i", FSliderEnum::Left | FSliderEnum::Min);
-						}
-						PopTransparent();
-						PushTransparent(!tGroup.m_tBacktrackGlow.Blur);
-						{
-							FSlider("Blur scale## Backtrack", &tGroup.m_tBacktrackGlow.Blur, 0.f, 10.f, 1.f, "%g", FSliderEnum::Right | FSliderEnum::Min | FSliderEnum::Precision);
-						}
-						PopTransparent();
+						DrawGlowSettings(tGroup.m_tBacktrackGlow, "## Backtrack");
 
 						EndPopup();
 					}
@@ -3946,7 +3957,12 @@ static std::string GetBindState(const Bind_t& tBind)
 			return tBind.m_bActive ? "On" : "Off";
 
 		if (vValues.empty())
+		{
+			//	keep the var's own format so percentage states print "100%" instead of "100"
+			if (const char* sFormat = pBase->m_sExtra; sFormat && std::string(sFormat).find('%') != std::string::npos)
+				return ImGui::FormatText(sFormat, pVar->Value);
 			return std::format("{}", pVar->Value);
+		}
 
 		if (pBase->m_iFlags & DROPDOWN_MULTI)
 		{
@@ -3969,7 +3985,12 @@ static std::string GetBindState(const Bind_t& tBind)
 	{
 		auto pVar = pBase->As<float>();
 		if (pVar)
+		{
+			//	keep the var's own format so percentage states print "100%" instead of "100"
+			if (const char* sFormat = pBase->m_sExtra; sFormat && std::string(sFormat).find('%') != std::string::npos)
+				return ImGui::FormatText(sFormat, pVar->Value);
 			return std::format("{}", pVar->Value);
+		}
 		return tBind.m_bActive ? "On" : "Off";
 	}
 
@@ -4089,7 +4110,7 @@ void CMenu::DrawBinds()
 		SetNextWindowPos({ float(tDragBox.x), float(tDragBox.y) }, ImGuiCond_Always);
 
 	float flTypeWidth = 0, flNameWidth = 0, flKeyWidth = 0, flStateWidth = 0;
-	PushFont(F::Render.FontLarge);
+	PushFont(F::Render.FontSmall);
 	for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 	{
 		flTypeWidth = std::max(flTypeWidth, FCalcTextSize(sType.c_str()).x);
@@ -4101,7 +4122,7 @@ void CMenu::DrawBinds()
 	flTypeWidth += H::Draw.Scale(9), flNameWidth += H::Draw.Scale(9), flKeyWidth += H::Draw.Scale(9), flStateWidth += H::Draw.Scale(9);
 
 	float flWidth = flTypeWidth + flNameWidth + flKeyWidth + flStateWidth + (m_bIsOpen ? H::Draw.Scale(113) : H::Draw.Scale(14));
-	float flHeight = H::Draw.Scale(18 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 38 : 12));
+	float flHeight = H::Draw.Scale(22 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 44 : 12));
 	SetNextWindowSize({ flWidth, flHeight }, ImGuiCond_Always);
 	PushStyleVar(ImGuiStyleVar_WindowMinSize, { H::Draw.Scale(40), H::Draw.Scale(40) });
 	if (Begin("Binds", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings))
@@ -4118,24 +4139,24 @@ void CMenu::DrawBinds()
 		if (Vars::Menu::BindWindowTitle.Value)
 		{
 			PushFont(F::Render.FontLargeBold);
-			SetCursorPos({ H::Draw.Scale(12), H::Draw.Scale(6) });
+			SetCursorPos({ H::Draw.Scale(12), H::Draw.Scale(8) });
 			FText("Binds");
 			PopFont();
 
 			//	accent divider between the title and the list, inset so it doesn't touch the edges
 			{
 				ImVec2 vDrawPos = GetDrawPos(), vSize = GetWindowSize();
-				const float flLineY = vDrawPos.y + H::Draw.Scale(26), flLineH = H::Draw.Scale(1.5);
+				const float flLineY = vDrawPos.y + H::Draw.Scale(32), flLineH = H::Draw.Scale(1.5);
 				GetWindowDrawList()->AddRectFilled(
 					{ vDrawPos.x + H::Draw.Scale(10), flLineY },
 					{ vDrawPos.x + vSize.x - H::Draw.Scale(10), flLineY + flLineH },
 					F::Render.Accent, flLineH / 2.f);
 			}
 
-			iListStart = 32;
+			iListStart = 42;
 		}
 
-		PushFont(F::Render.FontLarge);
+		PushFont(F::Render.FontSmall);
 		int i = 0; for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 		{
 			float flPosX = 0;
@@ -4144,39 +4165,39 @@ void CMenu::DrawBinds()
 				PushTransparent(!F::Binds.WillBeEnabled(iBind), true);
 
 			/* type */
-			SetCursorPos({ flPosX += H::Draw.Scale(12), H::Draw.Scale(iListStart + 18 * i) });
+			SetCursorPos({ flPosX += H::Draw.Scale(12), H::Draw.Scale(iListStart + 22 * i) });
 			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Accent.Value : F::Render.Inactive.Value);
 			FText(sType.c_str());
 			PopStyleColor();
 
 			/* name + keybind */
-			SetCursorPos({ flPosX += flTypeWidth, H::Draw.Scale(iListStart + 18 * i) });
+			SetCursorPos({ flPosX += flTypeWidth, H::Draw.Scale(iListStart + 22 * i) });
 			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Active.Value : F::Render.Inactive.Value);
 			FText(sName);
-			SetCursorPos({ flPosX += flNameWidth, H::Draw.Scale(iListStart + 18 * i) });
+			SetCursorPos({ flPosX += flNameWidth, H::Draw.Scale(iListStart + 22 * i) });
 			FText(sKey.c_str());
 			PopStyleColor();
 
 			/* state */
-			SetCursorPos({ flPosX += flKeyWidth, H::Draw.Scale(iListStart + 18 * i) });
+			SetCursorPos({ flPosX += flKeyWidth, H::Draw.Scale(iListStart + 22 * i) });
 			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Accent.Value : F::Render.Inactive.Value);
 			FText(sState.c_str());
 			PopStyleColor();
 
 			if (m_bIsOpen)
 			{	// buttons
-				SetCursorPos({ flWidth - H::Draw.Scale(26), H::Draw.Scale(iListStart - 2 + 18 * i) });
+				SetCursorPos({ flWidth - H::Draw.Scale(26), H::Draw.Scale(iListStart - 2 + 22 * i) });
 				bool bDelete = IconButton(ICON_MD_DELETE, H::Draw.Scale(18));
 
-				SetCursorPos({ flWidth - H::Draw.Scale(51), H::Draw.Scale(iListStart - 2 + 18 * i) });
+				SetCursorPos({ flWidth - H::Draw.Scale(51), H::Draw.Scale(iListStart - 2 + 22 * i) });
 				bool bNot = IconButton(!tBind.m_bNot ? ICON_MD_CODE : ICON_MD_CODE_OFF, H::Draw.Scale(18));
 
 				PushTransparent(Transparent || tBind.m_iVisibility == BindVisibilityEnum::Hidden, true);
-				SetCursorPos({ flWidth - H::Draw.Scale(76), H::Draw.Scale(iListStart - 2 + 18 * i) });
+				SetCursorPos({ flWidth - H::Draw.Scale(76), H::Draw.Scale(iListStart - 2 + 22 * i) });
 				bool bVisibility = IconButton(tBind.m_iVisibility == BindVisibilityEnum::Always ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF, H::Draw.Scale(18));
 				PopTransparent(1, 1);
 
-				SetCursorPos({ flWidth - H::Draw.Scale(101), H::Draw.Scale(iListStart - 2 + 18 * i) });
+				SetCursorPos({ flWidth - H::Draw.Scale(101), H::Draw.Scale(iListStart - 2 + 22 * i) });
 				bool bEnable = IconButton(tBind.m_bEnabled ? ICON_MD_TOGGLE_ON : ICON_MD_TOGGLE_OFF, H::Draw.Scale(18));
 
 				PopTransparent(1, 1);

@@ -187,7 +187,9 @@ void CDraw::StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Co
 	}
 
 	tColorOut.a *= Math::RemapVal(tColorOut.Brightness(), 0, 255, 0.5f, 0.1f);
-	if (tColorOut.a)
+	//	fonts carrying FONTFLAG_OUTLINE already bake a 1px outline into the glyphs,
+	//	so only draw our own ring for fonts that don't (stacking them would make the outline 2px thick)
+	if (tColorOut.a && !(tFont.m_nFlags & FONTFLAG_OUTLINE))
 	{
 		std::vector<std::pair<int, int>> vOutline = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 } };
 
@@ -227,7 +229,9 @@ void CDraw::StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Co
 	}
 	
 	tColorOut.a *= Math::RemapVal(tColorOut.Brightness(), 0, 255, 0.5f, 0.1f);
-	if (tColorOut.a)
+	//	fonts carrying FONTFLAG_OUTLINE already bake a 1px outline into the glyphs,
+	//	so only draw our own ring for fonts that don't (stacking them would make the outline 2px thick)
+	if (tColorOut.a && !(tFont.m_nFlags & FONTFLAG_OUTLINE))
 	{
 		std::vector<std::pair<int, int>> vOutline = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 } };
 

@@ -309,6 +309,8 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 		tCache.m_vText[i].m_iFont = FONT_INDICATORS;
 
 	// Misc
+	//	flags draw with the indicator font (same as the buff / debuff tags)
+	size_t uFlagStart = tCache.m_vText.size();
 	if (pGroup->m_iESP & ESPEnum::Flags)
 	{
 		if (pPlayer->m_bFeignDeathReady())
@@ -385,6 +387,8 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Lag {}, {}", iAverage, iCurrent), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		}
 	}
+	for (size_t i = uFlagStart; i < tCache.m_vText.size(); i++)
+		tCache.m_vText[i].m_iFont = FONT_INDICATORS;
 }
 
 static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Group_t* pGroup, std::unordered_map<CBaseEntity*, BuildingCache_t>& mCache)
@@ -456,6 +460,7 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 	if (pGroup->m_iESP & ESPEnum::Level && !bIsMini)
 		tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Level {}", pBuilding->m_iUpgradeLevel()), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
+	size_t uFlagStart = tCache.m_vText.size();
 	if (pGroup->m_iESP & ESPEnum::Flags)
 	{
 		if (!pBuilding->IsDormant() && pBuilding->m_bBuilding())
@@ -469,6 +474,8 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 		else if (pBuilding->m_bDisabled())
 			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Disabled", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 	}
+	for (size_t i = uFlagStart; i < tCache.m_vText.size(); i++)
+		tCache.m_vText[i].m_iFont = FONT_INDICATORS;
 }
 
 static inline const char* GetProjectileName(CBaseEntity* pProjectile)
@@ -535,6 +542,7 @@ static inline void StoreProjectile(CBaseEntity* pProjectile, CTFPlayer* pLocal, 
 			tCache.m_vText.emplace_back(ALIGN_TOP, F::PlayerUtils.GetPlayerName(iIndex, pResource->GetName(iIndex)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 	}
 
+	size_t uFlagStart = tCache.m_vText.size();
 	if (pGroup->m_iESP & ESPEnum::Flags)
 	{
 		switch (pProjectile->GetClassID())
@@ -602,6 +610,8 @@ static inline void StoreProjectile(CBaseEntity* pProjectile, CTFPlayer* pLocal, 
 			break;
 		}
 	}
+	for (size_t i = uFlagStart; i < tCache.m_vText.size(); i++)
+		tCache.m_vText[i].m_iFont = FONT_INDICATORS;
 }
 
 static inline void StoreObjective(CBaseEntity* pObjective, CTFPlayer* pLocal, Group_t* pGroup, std::unordered_map<CBaseEntity*, EntityCache_t>& mCache)
@@ -630,6 +640,7 @@ static inline void StoreObjective(CBaseEntity* pObjective, CTFPlayer* pLocal, Gr
 		if (pGroup->m_iESP & ESPEnum::Name)
 			tCache.m_vText.emplace_back(ALIGN_TOP, "Intel", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
+		size_t uFlagStart = tCache.m_vText.size();
 		if (pGroup->m_iESP & ESPEnum::Flags)
 		{
 			switch (pIntel->m_nFlagStatus())
@@ -644,6 +655,8 @@ static inline void StoreObjective(CBaseEntity* pObjective, CTFPlayer* pLocal, Gr
 				tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Stolen", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
 			}
 		}
+		for (size_t i = uFlagStart; i < tCache.m_vText.size(); i++)
+			tCache.m_vText[i].m_iFont = FONT_INDICATORS;
 
 		if (pGroup->m_iESP & ESPEnum::IntelReturnTime && pIntel->m_nFlagStatus() == TF_FLAGINFO_DROPPED)
 		{
