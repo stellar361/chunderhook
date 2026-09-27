@@ -97,7 +97,7 @@ void CSpectatorList::Draw(CTFPlayer* pLocal)
 		return;
 
 	int iconOffset = 0;
-	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::SpectatorsDisplay.Value);
+	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::SpectatorsDisplay.Value, 1 + int(m_vSpectators.size()));
 	const auto& fFont = *tInd.m_pFont;
 	const int nTall = tInd.m_iNTall;
 	int x = tInd.m_iX;

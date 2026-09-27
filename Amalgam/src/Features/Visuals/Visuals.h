@@ -45,6 +45,7 @@ public:
 	std::vector<DrawBox_t> GetHitboxes(matrix3x4* aBones, CBaseAnimating* pEntity, std::vector<int> vHitboxes = {}, int iTarget = -1);
 	void DrawEffects();
 	void DrawHitboxes(int iStore = 0);
+	void DrawLocalHeadHitboxes(int iStore = 0);
 
 	void FOV(CTFPlayer* pLocal, CViewSetup* pView);
 	void ThirdPerson(CTFPlayer* pLocal, CViewSetup* pView);

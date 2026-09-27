@@ -167,8 +167,8 @@ public:
 
 NAMESPACE_BEGIN(Vars)
 	NAMESPACE_BEGIN(Menu)
-		CVar(CheatTitle, "Cheat title", std::string("Amalgam"), VISUAL | DROPDOWN_AUTOUPDATE);
-		CVar(CheatTag, "Cheat tag", std::string("[Amalgam]"), VISUAL);
+		CVar(CheatTitle, "Cheat title", std::string("chunderhook"), VISUAL | DROPDOWN_AUTOUPDATE);
+		CVar(CheatTag, "Cheat tag", std::string("[chunderhook]"), VISUAL);
 		CVar(PrimaryKey, "Primary key", VK_INSERT, NOBIND);
 		CVar(SecondaryKey, "Secondary key", VK_F3, NOBIND);
 
@@ -505,6 +505,7 @@ NAMESPACE_BEGIN(Vars)
 		CVar(SpinSpeed, "Spin speed", 15.f, SLIDER_PRECISION, -30.f, 30.f);
 		CVar(MinWalk, "Minwalk", true);
 		CVar(HidePitchOnShot, "Hide pitch on shot", false);
+		CVar(HeadHitboxes, "Head hitboxes", false, VISUAL);
 
 		CVar(AntiAimLines, "Antiaim lines", false, NOSAVE);
 	NAMESPACE_END(AntiAim)
@@ -524,8 +525,6 @@ NAMESPACE_BEGIN(Vars)
 
 	NAMESPACE_BEGIN(ESP)
 		CVarValues(ActiveGroups, "Active groups", int(0b11111111111111111111111111111111), VISUAL | DROPDOWN_MULTI | DROPDOWN_NOSANITIZATION, nullptr);
-		CVar(HealthBarFlat, "Flat health bar color", false, VISUAL);
-		CVar(HealthBarColor, "Health bar color", Color_t(0, 255, 100, 255), VISUAL);
 	NAMESPACE_END(ESP)
 
 	NAMESPACE_BEGIN(Visuals)

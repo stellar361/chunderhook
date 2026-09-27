@@ -414,9 +414,10 @@ void CTicks::Draw(CTFPlayer* pLocal)
 	const DragBox_t dtPos = Vars::Menu::TicksDisplay.Value;
 	const auto& fFont = H::Fonts.GetFont(FONT_INDICATORS);
 	const int nTall = fFont.m_nTall;
+	const int iBoxH = H::Draw.Scale(40, Scale_Round);
 
 	if (m_bSpeedhack)
-		return H::Draw.StringOutlined(fFont, dtPos.x, dtPos.y + 2, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, std::format("Speedhack x{}", Vars::Speedhack::Scale.Value).c_str());
+		return H::Draw.StringOutlined(fFont, dtPos.x, dtPos.y + std::max(0, (iBoxH - nTall) / 2), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, std::format("Speedhack x{}", Vars::Speedhack::Scale.Value).c_str());
 
 	int iAntiAimTicks = F::AntiAim.YawOn() ? F::AntiAim.AntiAimTicks() : 0;
 	int iTicks = std::clamp(m_iShiftedTicks + std::max(I::ClientState->chokedcommands - iAntiAimTicks, 0), 0, m_iMaxUsrCmdProcessTicks);
@@ -425,11 +426,14 @@ void CTicks::Draw(CTFPlayer* pLocal)
 	// nitro style bar
 	const int iSizeX = H::Draw.Scale(100, Scale_Round), iSizeY = H::Draw.Scale(12, Scale_Round);
 	const int iRadius = H::Draw.Scale(4, Scale_Round);
-	const int iPosX = dtPos.x - iSizeX / 2, iPosY = dtPos.y;
+	const int iGap = H::Draw.Scale(3, Scale_Round);
+	const int iPosX = dtPos.x - iSizeX / 2;
+	//	label + gap + bar centred inside the drag box
+	const int iPosY = dtPos.y + std::max(0, (iBoxH - (nTall + iGap + iSizeY)) / 2);
 
-	H::Draw.StringOutlined(fFont, dtPos.x, iPosY - nTall - H::Draw.Scale(3, Scale_Round), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, std::format("Ticks {} / {}", iTicks, iMax).c_str());
+	H::Draw.StringOutlined(fFont, dtPos.x, iPosY - nTall - iGap, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, std::format("Ticks {} / {}", iTicks, iMax).c_str());
 	if (m_iWait)
-		H::Draw.StringOutlined(fFont, dtPos.x, iPosY + nTall + iSizeY, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, "Not Ready");
+		H::Draw.StringOutlined(fFont, dtPos.x, iPosY + iSizeY + H::Draw.Scale(2, Scale_Round), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, "Not Ready");
 
 	H::Draw.FillRoundRect(iPosX, iPosY, iSizeX, iSizeY, iRadius, Vars::Menu::Theme::Background.Value, 16);
 	if (iTicks > 0)

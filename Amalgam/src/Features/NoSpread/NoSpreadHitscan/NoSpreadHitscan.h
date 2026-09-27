@@ -26,6 +26,7 @@ public:
 
 	void Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd);
 	void Draw(CTFPlayer* pLocal);
+	int IndicatorLines(CTFPlayer* pLocal); // seed prediction is drawn inside the "Ping" indicator (0 = won't draw)
 
 	int m_iSeed = 0;
 	float m_flMantissaStep = 0.f;

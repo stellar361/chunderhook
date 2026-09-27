@@ -4,6 +4,35 @@
 #include "../../Ticks/Ticks.h"
 #include "../Groups/Groups.h"
 
+bool CFakeAngle::SetupFakeBones(CTFPlayer* pLocal, matrix3x4* aOut, const Vec2& vAngles)
+{
+	auto pAnimState = pLocal->m_PlayerAnimState();
+	if (!pAnimState)
+		return false;
+
+	float flOldFrameTime = I::GlobalVars->frametime;
+	int nOldSequence = pLocal->m_nSequence();
+	float flOldCycle = pLocal->m_flCycle();
+	auto pOldPoseParams = pLocal->m_flPoseParameter();
+	char pOldAnimState[sizeof(CTFPlayerAnimState)];
+	memcpy(pOldAnimState, pAnimState, sizeof(CTFPlayerAnimState));
+
+	I::GlobalVars->frametime = 0.f;
+	Vec2 vAngle = { std::clamp(vAngles.x, -89.f, 89.f), vAngles.y };
+	if (pLocal->IsTaunting() && pLocal->m_bAllowMoveDuringTaunt())
+		pLocal->m_flTauntYaw() = vAngle.y;
+	pAnimState->Update(pAnimState->m_flCurrentFeetYaw = /*pAnimState->m_flEyeYaw =*/ vAngle.y, vAngle.x);
+	pLocal->InvalidateBoneCache();
+	const bool bSetup = pLocal->SetupBones(aOut, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime);
+
+	I::GlobalVars->frametime = flOldFrameTime;
+	pLocal->m_nSequence() = nOldSequence;
+	pLocal->m_flCycle() = flOldCycle;
+	pLocal->m_flPoseParameter() = pOldPoseParams;
+	memcpy(pAnimState, pOldAnimState, sizeof(CTFPlayerAnimState));
+	return bSetup;
+}
+
 void CFakeAngle::Run(CTFPlayer* pLocal)
 {
 	if (!pLocal || !pLocal->IsAlive() || pLocal->IsAGhost()
@@ -20,28 +49,5 @@ void CFakeAngle::Run(CTFPlayer* pLocal)
 		return;
 	}
 
-	auto pAnimState = pLocal->m_PlayerAnimState();
-	if (!pAnimState)
-		return;
-
-	float flOldFrameTime = I::GlobalVars->frametime;
-	int nOldSequence = pLocal->m_nSequence();
-	float flOldCycle = pLocal->m_flCycle();
-	auto pOldPoseParams = pLocal->m_flPoseParameter();
-	char pOldAnimState[sizeof(CTFPlayerAnimState)];
-	memcpy(pOldAnimState, pAnimState, sizeof(CTFPlayerAnimState));
-
-	I::GlobalVars->frametime = 0.f;
-	Vec2 vAngle = { std::clamp(F::AntiAim.vFakeAngles.x, -89.f, 89.f), F::AntiAim.vFakeAngles.y };
-	if (pLocal->IsTaunting() && pLocal->m_bAllowMoveDuringTaunt())
-		pLocal->m_flTauntYaw() = vAngle.y;
-	pAnimState->Update(pAnimState->m_flCurrentFeetYaw = /*pAnimState->m_flEyeYaw =*/ vAngle.y, vAngle.x);
-	pLocal->InvalidateBoneCache();
-	bBonesSetup = pLocal->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime);
-
-	I::GlobalVars->frametime = flOldFrameTime;
-	pLocal->m_nSequence() = nOldSequence;
-	pLocal->m_flCycle() = flOldCycle;
-	pLocal->m_flPoseParameter() = pOldPoseParams;
-	memcpy(pAnimState, pOldAnimState, sizeof(CTFPlayerAnimState));
+	bBonesSetup = SetupFakeBones(pLocal, aBones, { F::AntiAim.vFakeAngles.x, F::AntiAim.vFakeAngles.y });
 }

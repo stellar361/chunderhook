@@ -392,7 +392,7 @@ static inline void LoadMain(BaseVar*& pBase, boost::property_tree::ptree& tTree)
 		}
 	}
 	else if (!(pVar->m_iFlags & NOSAVE))
-		SDK::Output("Amalgam", std::format("{} not found", pVar->Name()).c_str(), ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", std::format("{} not found", pVar->Name()).c_str(), ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 }
 #define Load(t, j) if (IsType(t)) LoadMain<t>(pBase, j);
 
@@ -457,6 +457,8 @@ bool CConfigs::SaveConfig(const std::string& sConfigName, bool bNotify)
 				SaveJson(tChild, "Name", tGroup.m_sName);
 				SaveJson(tChild, "Color", tGroup.m_tColor);
 				SaveJson(tChild, "TagsOverrideColor", tGroup.m_bTagsOverrideColor);
+				SaveJson(tChild, "HealthBarFlat", tGroup.m_bHealthBarFlat);
+				SaveJson(tChild, "HealthBarColor", tGroup.m_tHealthBarColor);
 				SaveJson(tChild, "Targets", tGroup.m_iTargets);
 				SaveJson(tChild, "Conditions", tGroup.m_iConditions);
 				SaveJson(tChild, "Players", tGroup.m_iPlayers);
@@ -486,11 +488,11 @@ bool CConfigs::SaveConfig(const std::string& sConfigName, bool bNotify)
 
 		m_sCurrentConfig = sConfigName; m_sCurrentVisuals = "";
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Config {} saved", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+			SDK::Output("chunderhook", std::format("Config {} saved", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Save config failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", "Save config failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 		return false;
 	}
 
@@ -538,7 +540,7 @@ bool CConfigs::LoadConfig(const std::string& sConfigName, bool bNotify)
 			}
 		}
 		else
-			SDK::Output("Amalgam", "Config binds not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+			SDK::Output("chunderhook", "Config binds not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 
 		if (auto tSub = tRead.get_child_optional("Vars");
 			tSub || (tSub = tRead.get_child_optional("ConVars")))
@@ -563,7 +565,7 @@ bool CConfigs::LoadConfig(const std::string& sConfigName, bool bNotify)
 			}
 		}
 		else
-			SDK::Output("Amalgam", "Config vars not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+			SDK::Output("chunderhook", "Config vars not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 
 		if (auto tSub = tRead.get_child_optional("Groups"))
 		{
@@ -573,6 +575,8 @@ bool CConfigs::LoadConfig(const std::string& sConfigName, bool bNotify)
 				LoadJson(tChild, "Name", tGroup.m_sName);
 				LoadJson(tChild, "Color", tGroup.m_tColor);
 				LoadJson(tChild, "TagsOverrideColor", tGroup.m_bTagsOverrideColor);
+				LoadJson(tChild, "HealthBarFlat", tGroup.m_bHealthBarFlat);
+				LoadJson(tChild, "HealthBarColor", tGroup.m_tHealthBarColor);
 				LoadJson(tChild, "Targets", tGroup.m_iTargets);
 				LoadJson(tChild, "Conditions", tGroup.m_iConditions);
 				LoadJson(tChild, "Players", tGroup.m_iPlayers);
@@ -595,18 +599,18 @@ bool CConfigs::LoadConfig(const std::string& sConfigName, bool bNotify)
 			}
 		}
 		else
-			SDK::Output("Amalgam", "Config groups not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+			SDK::Output("chunderhook", "Config groups not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 
 		F::Binds.SetVars(nullptr, nullptr, false);
 		H::Fonts.Reload();
 
 		m_sCurrentConfig = sConfigName; m_sCurrentVisuals = "";
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Config {} loaded", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+			SDK::Output("chunderhook", std::format("Config {} loaded", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Load config failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", "Load config failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 		return false;
 	}
 
@@ -666,6 +670,8 @@ bool CConfigs::SaveVisual(const std::string& sConfigName, bool bNotify)
 				SaveJson(tChild, "Name", tGroup.m_sName);
 				SaveJson(tChild, "Color", tGroup.m_tColor);
 				SaveJson(tChild, "TagsOverrideColor", tGroup.m_bTagsOverrideColor);
+				SaveJson(tChild, "HealthBarFlat", tGroup.m_bHealthBarFlat);
+				SaveJson(tChild, "HealthBarColor", tGroup.m_tHealthBarColor);
 				SaveJson(tChild, "Targets", tGroup.m_iTargets);
 				SaveJson(tChild, "Conditions", tGroup.m_iConditions);
 				SaveJson(tChild, "Players", tGroup.m_iPlayers);
@@ -694,11 +700,11 @@ bool CConfigs::SaveVisual(const std::string& sConfigName, bool bNotify)
 		write_json(m_sVisualsPath + sConfigName + m_sConfigExtension, tWrite);
 
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Visual config {} saved", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+			SDK::Output("chunderhook", std::format("Visual config {} saved", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Save visuals failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", "Save visuals failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 		return false;
 	}
 	return true;
@@ -739,7 +745,7 @@ bool CConfigs::LoadVisual(const std::string& sConfigName, bool bNotify)
 			}
 		}
 		else
-			SDK::Output("Amalgam", "Config vars not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+			SDK::Output("chunderhook", "Config vars not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 
 		if (auto tSub = tRead.get_child_optional("Groups"))
 		{
@@ -749,6 +755,8 @@ bool CConfigs::LoadVisual(const std::string& sConfigName, bool bNotify)
 				LoadJson(tChild, "Name", tGroup.m_sName);
 				LoadJson(tChild, "Color", tGroup.m_tColor);
 				LoadJson(tChild, "TagsOverrideColor", tGroup.m_bTagsOverrideColor);
+				LoadJson(tChild, "HealthBarFlat", tGroup.m_bHealthBarFlat);
+				LoadJson(tChild, "HealthBarColor", tGroup.m_tHealthBarColor);
 				LoadJson(tChild, "Targets", tGroup.m_iTargets);
 				LoadJson(tChild, "Conditions", tGroup.m_iConditions);
 				LoadJson(tChild, "Players", tGroup.m_iPlayers);
@@ -771,17 +779,17 @@ bool CConfigs::LoadVisual(const std::string& sConfigName, bool bNotify)
 			}
 		}
 		else
-			SDK::Output("Amalgam", "Config groups not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+			SDK::Output("chunderhook", "Config groups not found", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 
 		F::Binds.SetVars(nullptr, nullptr, false);
 
 		m_sCurrentVisuals = sConfigName;
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Visual config {} loaded", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+			SDK::Output("chunderhook", std::format("Visual config {} loaded", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Load visuals failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", "Load visuals failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 		return false;
 	}
 	return true;
@@ -811,11 +819,11 @@ void CConfigs::DeleteConfig(const std::string& sConfigName, bool bNotify)
 			LoadConfig("default", false);
 
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Config {} deleted", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+			SDK::Output("chunderhook", std::format("Config {} deleted", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Remove config failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", "Remove config failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 	}
 }
 
@@ -850,11 +858,11 @@ void CConfigs::ResetConfig(const std::string& sConfigName, bool bNotify)
 		H::Fonts.Reload();
 
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Config {} reset", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+			SDK::Output("chunderhook", std::format("Config {} reset", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Reset config failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", "Reset config failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 	}
 }
 
@@ -865,11 +873,11 @@ void CConfigs::DeleteVisual(const std::string& sConfigName, bool bNotify)
 		std::filesystem::remove(m_sVisualsPath + sConfigName + m_sConfigExtension);
 
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Visual config {} deleted", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+			SDK::Output("chunderhook", std::format("Visual config {} deleted", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Remove visuals failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", "Remove visuals failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 	}
 }
 
@@ -902,10 +910,10 @@ void CConfigs::ResetVisual(const std::string& sConfigName, bool bNotify)
 		F::Binds.SetVars(nullptr, nullptr, false);
 
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Visual config {} reset", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+			SDK::Output("chunderhook", std::format("Visual config {} reset", sConfigName).c_str(), INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Reset visuals failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+		SDK::Output("chunderhook", "Reset visuals failed", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 	}
 }

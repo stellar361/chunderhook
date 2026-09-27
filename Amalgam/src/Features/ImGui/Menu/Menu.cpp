@@ -668,6 +668,7 @@ void CMenu::MenuHVH(int iTab)
 						FSlider(Vars::AntiAim::SpinSpeed, FSliderEnum::Left);
 					}
 					PopTransparent();
+					FToggle(Vars::AntiAim::HeadHitboxes, FToggleEnum::Left);
 					SetCursorPos({ GetWindowWidth() / 2 + GetStyle().WindowPadding.x / 2, GetRowPos() + H::Draw.Scale(8) });
 					FToggle(Vars::AntiAim::MinWalk, FToggleEnum::Left);
 				} EndSection();
@@ -945,8 +946,8 @@ void CMenu::MenuVisuals(int iTab)
 				{
 					FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
 					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
-					FToggle(Vars::ESP::HealthBarFlat, FToggleEnum::Left);
-					FColorPicker(Vars::ESP::HealthBarColor, FColorPickerEnum::Right);
+					FToggle("Flat health bar color", &tGroup.m_bHealthBarFlat, FToggleEnum::Left);
+					FColorPicker("Health bar color", &tGroup.m_tHealthBarColor, FColorPickerEnum::Right);
 				} EndSection();
 				if (Section("Targets"))
 				{
@@ -2144,7 +2145,7 @@ void CMenu::MenuLogs(int iTab)
 						fStream.close();
 
 						SDK::SetClipboard(sString);
-						SDK::Output("Amalgam", "Copied playerlist to clipboard", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+						SDK::Output("chunderhook", "Copied playerlist to clipboard", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 					}
 				}
 
@@ -2245,7 +2246,7 @@ void CMenu::MenuLogs(int iTab)
 						}
 						catch (...)
 						{
-							SDK::Output("Amalgam", "Failed to import playerlist", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+							SDK::Output("chunderhook", "Failed to import playerlist", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 						}
 					}
 
@@ -2306,7 +2307,7 @@ void CMenu::MenuLogs(int iTab)
 							}
 
 							F::PlayerUtils.m_bSave = true;
-							SDK::Output("Amalgam", "Imported playerlist", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+							SDK::Output("chunderhook", "Imported playerlist", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 
 							CloseCurrentPopup();
 						}
@@ -2337,11 +2338,11 @@ void CMenu::MenuLogs(int iTab)
 							F::Configs.m_sCorePath + std::format("Backup{}.json", iBackupCount + 1),
 							std::filesystem::copy_options::overwrite_existing
 						);
-						SDK::Output("Amalgam", "Saved backup playerlist", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+						SDK::Output("chunderhook", "Saved backup playerlist", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 					}
 					catch (...)
 					{
-						SDK::Output("Amalgam", "Failed to backup playerlist", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
+						SDK::Output("chunderhook", "Failed to backup playerlist", ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_CANCEL);
 					}
 				}
 			}
@@ -4074,7 +4075,7 @@ void CMenu::DrawBinds()
 		SetNextWindowPos({ float(tDragBox.x), float(tDragBox.y) }, ImGuiCond_Always);
 
 	float flTypeWidth = 0, flNameWidth = 0, flKeyWidth = 0, flStateWidth = 0;
-	PushFont(F::Render.FontSmall);
+	PushFont(F::Render.FontRegular);
 	for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 	{
 		flTypeWidth = std::max(flTypeWidth, FCalcTextSize(sType.c_str()).x);
@@ -4086,17 +4087,14 @@ void CMenu::DrawBinds()
 	flTypeWidth += H::Draw.Scale(9), flNameWidth += H::Draw.Scale(9), flKeyWidth += H::Draw.Scale(9), flStateWidth += H::Draw.Scale(9);
 
 	float flWidth = flTypeWidth + flNameWidth + flKeyWidth + flStateWidth + (m_bIsOpen ? H::Draw.Scale(113) : H::Draw.Scale(14));
-	float flHeight = H::Draw.Scale(18 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 42 : 12));
+	float flHeight = H::Draw.Scale(18 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 38 : 12));
 	SetNextWindowSize({ flWidth, flHeight }, ImGuiCond_Always);
 	PushStyleVar(ImGuiStyleVar_WindowMinSize, { H::Draw.Scale(40), H::Draw.Scale(40) });
 	if (Begin("Binds", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings))
 	{
 		ImVec2 vWindowPos = GetWindowPos();
 
-		if (Vars::Menu::BindWindowTitle.Value)
-			RenderTwoToneBackground(H::Draw.Scale(28), F::Render.Background0, F::Render.Background0p5, F::Render.Background2);
-		else
-			RenderBackground(F::Render.Background0p5, F::Render.Background2);
+		RenderBackground(F::Render.Background0, F::Render.Background2);
 
 		tDragBox.x = vWindowPos.x; tDragBox.y = vWindowPos.y; tOld = tDragBox;
 		if (m_bIsOpen)
@@ -4105,17 +4103,25 @@ void CMenu::DrawBinds()
 		int iListStart = 8;
 		if (Vars::Menu::BindWindowTitle.Value)
 		{
-			SetCursorPos({ H::Draw.Scale(8), H::Draw.Scale(6) });
-			IconImage(ICON_MD_KEYBOARD, F::Render.Accent);
 			PushFont(F::Render.FontLarge);
-			SetCursorPos({ H::Draw.Scale(30), H::Draw.Scale(7) });
+			SetCursorPos({ H::Draw.Scale(12), H::Draw.Scale(7) });
 			FText("Binds");
 			PopFont();
 
-			iListStart = 36;
+			//	accent divider between the title and the list, inset so it doesn't touch the edges
+			{
+				ImVec2 vDrawPos = GetDrawPos(), vSize = GetWindowSize();
+				const float flLineY = vDrawPos.y + H::Draw.Scale(26), flLineH = H::Draw.Scale(2);
+				GetWindowDrawList()->AddRectFilled(
+					{ vDrawPos.x + H::Draw.Scale(6), flLineY },
+					{ vDrawPos.x + vSize.x - H::Draw.Scale(6), flLineY + flLineH },
+					F::Render.Accent, flLineH / 2.f);
+			}
+
+			iListStart = 32;
 		}
 
-		PushFont(F::Render.FontSmall);
+		PushFont(F::Render.FontRegular);
 		int i = 0; for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 		{
 			float flPosX = 0;
@@ -4247,7 +4253,6 @@ void CMenu::Render()
 		AddDraggable("Spectators", Vars::Menu::SpectatorsDisplay, FGet(Vars::Menu::Indicators) & Vars::Menu::IndicatorsEnum::Spectators);
 		AddDraggable("Ping", Vars::Menu::PingDisplay, FGet(Vars::Menu::Indicators) & Vars::Menu::IndicatorsEnum::Ping);
 		AddDraggable("Conditions", Vars::Menu::ConditionsDisplay, FGet(Vars::Menu::Indicators) & Vars::Menu::IndicatorsEnum::Conditions);
-		AddDraggable("Seed prediction", Vars::Menu::SeedPredictionDisplay, FGet(Vars::Menu::Indicators) & Vars::Menu::IndicatorsEnum::SeedPrediction);
 		AddResizableDraggable("Camera", Vars::Visuals::Simulation::ProjectileWindow, FGet(Vars::Visuals::Simulation::ProjectileCamera), OptionalConstraints);
 
 		F::Render.Cursor = GetMouseCursor();

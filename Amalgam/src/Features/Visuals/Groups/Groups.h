@@ -18,6 +18,10 @@ struct Group_t
 	Color_t m_tColor = {};
 	bool m_bTagsOverrideColor = true;
 
+	//	health bar can use a flat (single) colour instead of the hp gradient, per group
+	bool m_bHealthBarFlat = false;
+	Color_t m_tHealthBarColor = Color_t(0, 255, 100, 255);
+
 	int m_iTargets = 0b0;
 	int m_iConditions = 0b0;
 	int m_iPlayers = 0b0;

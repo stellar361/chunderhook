@@ -3,6 +3,7 @@
 #include "../PacketManip/FakeLag/FakeLag.h"
 #include "../Ticks/Ticks.h"
 #include "../AntiCheatCompatibility/AntiCheatCompatibility.h"
+#include "../NoSpread/NoSpreadHitscan/NoSpreadHitscan.h"
 
 void CBacktrack::Reset()
 {
@@ -424,7 +425,8 @@ void CBacktrack::Draw(CTFPlayer* pLocal)
 	float flLatency = std::max(pNetChan->GetLatency(FLOW_INCOMING) + pNetChan->GetLatency(FLOW_OUTGOING) - flFakeLatency, 0.f) * 1000;
 	int iLatencyScoreboard = pResource->m_iPing(I::EngineClient->GetLocalPlayer());
 
-	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::PingDisplay.Value);
+	//	ping (2 lines) + seed prediction, which draws inside this indicator
+	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::PingDisplay.Value, 2 + F::NoSpreadHitscan.IndicatorLines(pLocal));
 	const auto& fFont = *tInd.m_pFont;
 	const int nTall = tInd.m_iNTall;
 	int x = tInd.m_iX;

@@ -388,14 +388,14 @@ void CPlayerConditions::Draw(CTFPlayer* pLocal)
 	if (!pTarget || !pTarget->IsPlayer() || !pTarget->IsAlive())
 		return;
 
-	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::ConditionsDisplay.Value);
+	std::vector<std::string> vConditions = Get(pTarget);
+
+	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::ConditionsDisplay.Value, int(vConditions.size()));
 	const auto& fFont = *tInd.m_pFont;
 	const int nTall = tInd.m_iNTall;
 	int x = tInd.m_iX;
 	int y = tInd.m_iY;
 	EAlign align = tInd.m_eAlign;
-
-	std::vector<std::string> vConditions = Get(pTarget);
 
 	int iOffset = 0;
 	for (const std::string& sCondition : vConditions)

@@ -89,13 +89,17 @@ Vec2 CDraw::GetTextSize(const wchar_t* text, const Font_t& tFont)
 	return { float(w), float(h) };
 }
 
-IndicatorLayout_t CDraw::GetIndicatorLayout(const DragBox_t& tPos)
+IndicatorLayout_t CDraw::GetIndicatorLayout(const DragBox_t& tPos, int nLines)
 {
 	IndicatorLayout_t tLayout = {};
 	tLayout.m_pFont = &H::Fonts.GetFont(FONT_INDICATORS);
 	tLayout.m_iX = tPos.x;
-	tLayout.m_iY = tPos.y + 8;
 	tLayout.m_iNTall = tLayout.m_pFont->m_nTall + H::Draw.Scale(1);
+
+	//	centre the whole text block inside the drag box (100 x 40)
+	const int iBoxH = Scale(40, Scale_Round);
+	const int iBlockH = std::max(nLines, 1) * tLayout.m_iNTall;
+	tLayout.m_iY = tPos.y + std::max(0, (iBoxH - iBlockH) / 2);
 	tLayout.m_eAlign = ALIGN_TOP;
 
 	if (tLayout.m_iX <= 100 + Scale(50, Scale_Round))

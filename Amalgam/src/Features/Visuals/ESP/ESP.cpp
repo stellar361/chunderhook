@@ -108,8 +108,8 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 		tCache.m_flHealth = bOverhealed
 			? 1.f + std::clamp((flHealth - flMaxHealth) / (floorf(flMaxHealth / 10.f) * 5), 0.f, 1.f)
 			: std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
-		Color_t tColor = Vars::ESP::HealthBarFlat.Value
-			? Vars::ESP::HealthBarColor.Value
+		Color_t tColor = pGroup->m_bHealthBarFlat
+			? pGroup->m_tHealthBarColor
 			: Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f), LerpEnum::HSV);
 		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, s_tOverhealColor);
 	}
@@ -420,8 +420,8 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 	if (pGroup->m_iESP & ESPEnum::HealthBar)
 	{
 		tCache.m_flHealth = std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
-		Color_t tColor = Vars::ESP::HealthBarFlat.Value
-			? Vars::ESP::HealthBarColor.Value
+		Color_t tColor = pGroup->m_bHealthBarFlat
+			? pGroup->m_tHealthBarColor
 			: Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f), LerpEnum::HSV);
 		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, s_tOverhealColor);
 	}

@@ -33,14 +33,14 @@ static inline bool CheckDXLevel()
 	if (mat_dxlevel->GetInt() < 90)
 	{
 		/*
-		const char* sMessage = "You are running with graphics options that Amalgam does not support. -dxlevel must be at least 90.";
+		const char* sMessage = "You are running with graphics options that chunderhook does not support. -dxlevel must be at least 90.";
 		U::Core.AppendFailText(sMessage);
-		SDK::Output("Amalgam", sMessage, ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
+		SDK::Output("chunderhook", sMessage, ERROR_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 		return false;
 		*/
 
-		const char* sMessage = "You are running with graphics options that Amalgam does not support. It is recommended for -dxlevel to be at least 90.";
-		SDK::Output("Amalgam", sMessage, WARNING_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_WARNING);
+		const char* sMessage = "You are running with graphics options that chunderhook does not support. It is recommended for -dxlevel to be at least 90.";
+		SDK::Output("chunderhook", sMessage, WARNING_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_WARNING);
 	}
 
 	return true;
@@ -116,7 +116,7 @@ void CCore::Load()
 	H::Fonts.Reload();
 	F::Configs.LoadConfig(F::Configs.m_sCurrentConfig, false);
 
-	SDK::Output("Amalgam", "Loaded", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
+	SDK::Output("chunderhook", "Loaded", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG, ICON_MD_INFO);
 }
 
 void CCore::Loop()
@@ -174,5 +174,5 @@ void CCore::Unload()
 		return;
 	}
 
-	SDK::Output("Amalgam", "Unloaded", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_DEBUG);
+	SDK::Output("chunderhook", "Unloaded", INFO_COLOR, OUTPUT_CONSOLE | OUTPUT_DEBUG);
 }

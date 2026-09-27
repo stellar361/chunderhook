@@ -197,16 +197,28 @@ void CNoSpreadHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* 
 	G::SilentAngles = true;
 }
 
+int CNoSpreadHitscan::IndicatorLines(CTFPlayer* pLocal)
+{
+	if (!(Vars::Menu::Indicators.Value & (Vars::Menu::IndicatorsEnum::Ping | Vars::Menu::IndicatorsEnum::SeedPrediction))
+		|| !ShouldRun() || !pLocal || !pLocal->IsAlive())
+		return 0;
+
+	return 2 + (Vars::Debug::Info.Value ? 1 : 0); // uptime, mantissa step (+ delta)
+}
+
 void CNoSpreadHitscan::Draw(CTFPlayer* pLocal)
 {
-	if (!(Vars::Menu::Indicators.Value & Vars::Menu::IndicatorsEnum::SeedPrediction) || !ShouldRun() || !pLocal->IsAlive())
+	const int nSeedLines = IndicatorLines(pLocal);
+	if (!nSeedLines)
 		return;
 
-	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::SeedPredictionDisplay.Value);
+	//	merged into the ping indicator: ping takes the first two lines, seed prediction follows
+	const bool bPing = (Vars::Menu::Indicators.Value & Vars::Menu::IndicatorsEnum::Ping) != 0;
+	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::PingDisplay.Value, nSeedLines + (bPing ? 2 : 0));
 	const auto& fFont = *tInd.m_pFont;
 	const int nTall = tInd.m_iNTall;
 	int x = tInd.m_iX;
-	int y = tInd.m_iY;
+	int y = tInd.m_iY + (bPing ? 2 * nTall : 0);
 	EAlign align = tInd.m_eAlign;
 
 	const auto& cColor = m_bSynced ? Vars::Menu::Theme::Active.Value : Vars::Menu::Theme::Inactive.Value;

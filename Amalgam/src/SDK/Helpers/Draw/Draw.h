@@ -35,7 +35,8 @@ enum Scale_
 };
 
 //	shared layout for every on-screen indicator (crit, ping, conditions, spectators, seed).
-//	identical font settings to the crit indicator / nitro dt bar: FONT_INDICATORS, nTall + 1, drag pos + 8, edge align
+//	identical font settings to the crit indicator / nitro dt bar: FONT_INDICATORS, nTall + 1, edge align
+//	the text block (nLines) is centred inside its 100 x 40 drag box
 struct IndicatorLayout_t
 {
 	const Font_t* m_pFont = nullptr;
@@ -85,7 +86,7 @@ public:
 	Vec2 GetTextSize(const char* text, const Font_t& tFont);
 	Vec2 GetTextSize(const wchar_t* text, const Font_t& tFont);
 
-	IndicatorLayout_t GetIndicatorLayout(const DragBox_t& tPos);
+	IndicatorLayout_t GetIndicatorLayout(const DragBox_t& tPos, int nLines = 1);
 
 	void String(const Font_t& tFont, int x, int y, Color_t tColor, EAlign eAlign, const char* str);
 	void String(const Font_t& tFont, int x, int y, Color_t tColor, EAlign eAlign, const wchar_t* wstr);

@@ -10,6 +10,7 @@
 #include "../CritHack/CritHack.h"
 #include "../Ticks/Ticks.h"
 #include "FakeAngle/FakeAngle.h"
+#include "../PacketManip/AntiAim/AntiAim.h"
 #include "../World/World.h"
 
 MAKE_SIGNATURE(UTIL_PlayerByIndex, "server.dll", "48 83 EC ? 8B D1 85 C9 7E ? 48 8B 05", 0x0);
@@ -408,6 +409,7 @@ void CVisuals::DrawEffects()
 	}
 
 	DrawHitboxes();
+	DrawLocalHeadHitboxes();
 }
 
 static std::vector<DrawBox_t> s_vHitboxes = {}, s_vLocalHitboxes = {};
@@ -472,6 +474,62 @@ void CVisuals::DrawHitboxes(int iStore)
 		s_vLocalHitboxes.insert(s_vLocalHitboxes.end(), vBoxes.begin(), vBoxes.end());
 	}
 	}
+}
+
+static std::vector<DrawBox_t> s_vLocalHeadHitboxes = {};
+void CVisuals::DrawLocalHeadHitboxes(int iStore)
+{
+	if (!Vars::AntiAim::HeadHitboxes.Value)
+	{
+		s_vLocalHeadHitboxes.clear();
+		return;
+	}
+
+	if (iStore) //	bones are set up while creating commands, only stored boxes are drawn
+	{
+		s_vLocalHeadHitboxes.clear();
+
+		auto pLocal = H::Entities.GetLocal();
+		if (!pLocal || !pLocal->IsAlive() || pLocal->IsAGhost())
+			return;
+
+		auto pSet = pLocal->GetHitboxSet();
+		if (!pSet)
+			return;
+
+		auto pBox = pSet->pHitbox(HITBOX_HEAD);
+		if (!pBox)
+			return;
+
+		auto AddHead = [&](matrix3x4* aBones, Color_t tColor)
+		{
+			Vec3 vAngle; Math::MatrixAngles(aBones[pBox->bone], vAngle);
+			Vec3 vOrigin; Math::GetMatrixOrigin(aBones[pBox->bone], vOrigin);
+
+			s_vLocalHeadHitboxes.push_back({ vOrigin,
+				pBox->bbmin * pLocal->m_flModelScale(),
+				pBox->bbmax * pLocal->m_flModelScale(),
+				vAngle, 0.f, tColor, Color_t() });
+		};
+
+		//	no anti aim -> only the real head hitbox
+		if (F::AntiAim.AntiAimOn())
+		{
+			matrix3x4 aFakeBones[MAXSTUDIOBONES];
+			if (F::FakeAngle.SetupFakeBones(pLocal, aFakeBones, F::AntiAim.vFakeAngles))
+				AddHead(aFakeBones, { 255, 0, 0, 255 }); //	fake, red
+		}
+
+		matrix3x4 aBones[MAXSTUDIOBONES];
+		if (pLocal->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+			AddHead(aBones, { 0, 255, 0, 255 }); //	real, green
+
+		return;
+	}
+
+	//	edges only, no faces / fill
+	for (auto& tBox : s_vLocalHeadHitboxes)
+		H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tBox.m_tColorEdge, false);
 }
 
 MAKE_HOOK(CBaseAnimating_DrawServerHitboxes, S::CBaseAnimating_DrawServerHitboxes(), void,
@@ -1033,6 +1091,7 @@ void CVisuals::CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 		pLocal->FireEvent(pLocal->GetAbsOrigin(), QAngle(), 7001, nullptr);
 
 	DrawHitboxes(2);
+	DrawLocalHeadHitboxes(1);
 
 #ifdef WORLD_DEBUG
 	if (auto pLocal = H::Entities.GetLocal(); Vars::World::Faces.Value && pLocal && I::Input->CAM_IsThirdPerson())
