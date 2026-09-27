@@ -352,6 +352,8 @@ Directs_t CAimbotProjectile::GetDirects()
 
 	if (Vars::Aimbot::Projectile::SplashPrediction.Value == Vars::Aimbot::Projectile::SplashPredictionEnum::Only && m_tInfo.m_flRadius)
 		return mDirects;
+	if (Vars::Aimbot::Projectile::EdgeSplash.Value == Vars::Aimbot::Projectile::EdgeSplashEnum::Force && m_bEdgePoints)
+		return mDirects;
 
 	auto& tTarget = *m_tInfo.m_pTarget;
 	uint8_t iFlags = PointFlagsEnum::Regular;
@@ -420,7 +422,8 @@ Splashes_t CAimbotProjectile::GetSplashes()
 {
 	Splashes_t vSplashes = {};
 
-	if (Vars::Aimbot::Projectile::SplashPrediction.Value == Vars::Aimbot::Projectile::SplashPredictionEnum::Off || !m_tInfo.m_flRadius)
+	if ((Vars::Aimbot::Projectile::SplashPrediction.Value == Vars::Aimbot::Projectile::SplashPredictionEnum::Off && !m_bEdgePoints)
+		|| !m_tInfo.m_flRadius)
 		return vSplashes;
 
 	vSplashes.push_back(PointFlagsEnum::Regular);
@@ -635,6 +638,7 @@ static inline void HandleFace(Face_t& tFace, std::vector<Setup_t>& vPoints, floa
 				continue;
 
 			vPoints.emplace_back(vPoint);
+			vPoints.back().m_bEdge = !bInside;
 		}
 	}
 }
@@ -766,6 +770,23 @@ void CAimbotProjectile::SetupSplashPoints(Vec3& vOrigin, std::vector<Setup_t>& v
 #endif
 }
 
+//	edge splash: work out up front whether the target has any geometry edge inside its blast radius,
+//	before deciding between a direct hit and a splash. result feeds GetDirects / GetSplashes / CanHit
+bool CAimbotProjectile::DetectEdgeSplash(Vec3 vOrigin)
+{
+	m_bEdgePoints = false;
+	if (Vars::Aimbot::Projectile::EdgeSplash.Value == Vars::Aimbot::Projectile::EdgeSplashEnum::Off || !m_tInfo.m_flRadius)
+		return false;
+
+	SetupSplashPoints(vOrigin, m_vSplashPoints);
+	for (auto& tSetup : m_vSplashPoints)
+	{
+		if (tSetup.m_bEdge)
+			return m_bEdgePoints = true;
+	}
+	return false;
+}
+
 std::vector<Point_t> CAimbotProjectile::GetSplashPoints(Vec3 vOrigin, std::vector<Setup_t>& vSplashPoints, int iSimTime, uint8_t iFlags, bool bFirst)
 {
 	std::vector<Point_t> vPoints = {};
@@ -791,6 +812,7 @@ std::vector<Point_t> CAimbotProjectile::GetSplashPoints(Vec3 vOrigin, std::vecto
 	for (auto it = vSplashPoints.begin(); it != vSplashPoints.end();)
 	{
 		Point_t tPoint = { it->m_vPoint, {}, it->m_iType };
+		tPoint.m_bEdge = it->m_bEdge;
 
 		CalculateAngle(m_tInfo.m_vLocalEye, tPoint.m_vPoint, iSimTime, tPoint.m_tSolution, iFlags, iTolerance);
 		if (tPoint.m_tSolution.m_iCalculated != CalculateResultEnum::Good)
@@ -817,8 +839,12 @@ std::vector<Point_t> CAimbotProjectile::GetSplashPoints(Vec3 vOrigin, std::vecto
 
 	if (bSort)
 	{
+		//	edge splash: rank points sitting on the edge of the geometry ahead of the rest
+		bool bEdgeSplash = Vars::Aimbot::Projectile::EdgeSplash.Value != Vars::Aimbot::Projectile::EdgeSplashEnum::Off;
 		std::sort(vPoints.begin(), vPoints.end(), [&](const auto& a, const auto& b) -> bool
 		{
+			if (bEdgeSplash && a.m_bEdge != b.m_bEdge)
+				return a.m_bEdge;
 			return a.m_vPoint.DistToSqr(vOrigin) < b.m_vPoint.DistToSqr(vOrigin);
 		});
 		vPoints.resize(std::min(iLimit, int(vPoints.size())));
@@ -1514,7 +1540,9 @@ bool CAimbotProjectile::HandleSplash(SplashHistory_t& mSplashHistory)
 	if (!m_vSplashPoints.empty())
 	{
 		iFlags |= CalculateFlagsEnum::Accuracy;
+		bool bEdgeSplash = Vars::Aimbot::Projectile::EdgeSplash.Value != Vars::Aimbot::Projectile::EdgeSplashEnum::Off;
 		float flLowestDistance = std::numeric_limits<float>::max(); bool bFirst = true;
+		bool bHaveBest = false, bBestEdge = false;
 		for (auto& tHistory : vSplashHistory)
 		{
 			std::vector<Point_t> vSplashPoints = {};
@@ -1523,13 +1551,19 @@ bool CAimbotProjectile::HandleSplash(SplashHistory_t& mSplashHistory)
 			for (auto& tPoint : vSplashPoints)
 			{
 				float flDistance = tHistory.m_vOrigin.DistToSqr(tPoint.m_vPoint);
-				if (flDistance > flLowestDistance)
-					continue;
+				if (bHaveBest)
+				{	//	splash the edge of the object over any closer point on its face, otherwise closest wins
+					bool bBetter = bEdgeSplash && tPoint.m_bEdge != bBestEdge ? tPoint.m_bEdge : flDistance <= flLowestDistance;
+					if (!bBetter)
+						continue;
+				}
 
 				if (HandlePoint(tHistory.m_vOrigin, tHistory.m_iSimtime, tPoint.m_tSolution.m_flPitch, tPoint.m_tSolution.m_flYaw, tPoint.m_tSolution.m_flTime, tPoint.m_vPoint, tPoint.m_iType, iType))
 				{
 					bReturn = true;
 					flLowestDistance = flDistance;
+					bBestEdge = tPoint.m_bEdge;
+					bHaveBest = true;
 				}
 			}
 			if (m_tInfo.m_bIgnoreTiming && iType == PointFlagsEnum::Lob)
@@ -1585,6 +1619,8 @@ int CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBas
 	m_tInfo.m_bIgnoreTiming = Vars::Aimbot::Projectile::LobAnglesUnderpredict.Value && m_tInfo.m_flRadius;
 
 
+
+	DetectEdgeSplash(tTarget.m_vPos);
 
 	Directs_t mDirects = GetDirects();
 	Splashes_t vSplashes = GetSplashes();
@@ -1685,7 +1721,9 @@ int CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBas
 	}
 
 	m_iResult = false, m_bUpdate = bUpdate;
-	if (!m_tInfo.m_flRadius || Vars::Aimbot::Projectile::SplashPrediction.Value < Vars::Aimbot::Projectile::SplashPredictionEnum::Prefer)
+	const bool bEdgeSplash = m_bEdgePoints && !mSplashHistory.empty()
+		&& Vars::Aimbot::Projectile::EdgeSplash.Value > Vars::Aimbot::Projectile::EdgeSplashEnum::Off;
+	if (!m_tInfo.m_flRadius || (Vars::Aimbot::Projectile::SplashPrediction.Value < Vars::Aimbot::Projectile::SplashPredictionEnum::Prefer && !bEdgeSplash))
 		goto direct;
 	else
 		goto splash;
@@ -1886,9 +1924,58 @@ static inline void DrawVisuals(int iResult, Target_t& tTarget, std::vector<Vec3>
 	}
 }
 
+//	Keeps a primed Loose Cannon ball charged and lets it go at the last moment where it still reaches the target,
+//	so the impact and the explosion land together (double donk).
+void CAimbotProjectile::ChargeCannon(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, Target_t& tTarget, int iResult)
+{
+	auto pCannon = pWeapon->As<CTFGrenadeLauncher>();
+	const float flDetonateTime = pCannon->m_flDetonateTime();
+
+	if (Vars::Aimbot::General::AutoShoot.Value)
+		pCmd->buttons |= IN_ATTACK;	//	start / keep priming
+
+	if (flDetonateTime <= 0.f)
+		return;
+
+	if (m_iLastTickCancel)
+		pCmd->weaponselect = m_iLastTickCancel = 0;
+
+	//	let it go right away when the shot lands sooner than the configured threshold
+	if (Vars::Aimbot::Projectile::AutoDoubleDonk.Value && Vars::Aimbot::Projectile::DoubleDonkAbove.Value > 0.f
+		&& iResult == 1 && m_flTimeTo - m_tInfo.m_flLatency <= Vars::Aimbot::Projectile::DoubleDonkAbove.Value / 1000.f)
+	{
+		pCmd->buttons &= ~IN_ATTACK;
+		return;
+	}
+
+	//	rerun, if we won't hit once the fuse is any shorter, the fuse is as short as it gets - fire
+	int iResult2 = 0;
+	float flCharge = flDetonateTime - I::GlobalVars->curtime;
+	flCharge = floorf(flCharge / GRENADE_CHECK_INTERVAL) * GRENADE_CHECK_INTERVAL + F::ProjSim.GetDesync();
+	if (flCharge > GRENADE_CHECK_INTERVAL)
+	{
+		auto tTarget2 = tTarget;
+		float flOldDetonateTime = pCannon->m_flDetonateTime();
+
+		pCannon->m_flDetonateTime() -= GRENADE_CHECK_INTERVAL;
+		iResult2 = CanHit(tTarget2, pLocal, pWeapon, false);
+
+		pCannon->m_flDetonateTime() = flOldDetonateTime;
+	}
+
+	if (iResult2 == 1)
+		pCmd->buttons |= IN_ATTACK;	//	still room left to charge
+	else
+		pCmd->buttons &= ~IN_ATTACK;	//	fire
+}
+
 bool CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 {
 	const int nWeaponID = pWeapon->GetWeaponID();
+
+	const bool bChargeWeapon = bool(Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::ChargeWeapon);
+	const bool bAutoDoubleDonk = nWeaponID == TF_WEAPON_CANNON && Vars::Aimbot::Projectile::AutoDoubleDonk.Value;
+	const bool bCannonCharge = nWeaponID == TF_WEAPON_CANNON && (bChargeWeapon || bAutoDoubleDonk);
 
 	static int iStaticAimType = Vars::Aimbot::General::AimType.Value;
 	const int iLastAimType = iStaticAimType;
@@ -1914,7 +2001,7 @@ bool CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 		|| !F::AimbotGlobal.ShouldAim() && nWeaponID != TF_WEAPON_FLAMETHROWER)
 		return false;
 
-	if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::ChargeWeapon && iRealAimType
+	if (bChargeWeapon && iRealAimType
 		&& (nWeaponID == TF_WEAPON_COMPOUND_BOW || nWeaponID == TF_WEAPON_PIPEBOMBLAUNCHER || nWeaponID == TF_WEAPON_CANNON && G::LastUserCmd->buttons & IN_ATTACK))
 	{
 		pCmd->buttons |= IN_ATTACK;
@@ -1924,7 +2011,13 @@ bool CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 
 	auto vTargets = F::AimbotGlobal.ManageTargets(GetTargets, pLocal, pWeapon);
 	if (vTargets.empty())
+	{
+		if (bAutoDoubleDonk && pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime() > 0.f
+			&& !(G::OriginalCmd.buttons & (IN_ATTACK | IN_USE)))
+			CancelShot(pLocal, pWeapon, pCmd, m_iLastTickCancel);	//	don't leave a primed ball hanging around
+
 		return false;
+	}
 
 	if (!G::AimTarget.m_iEntIndex)
 		G::AimTarget = { vTargets.front().m_pEntity->entindex(), I::GlobalVars->tickcount, 0 };
@@ -1947,7 +2040,7 @@ bool CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 		m_vPlayerPath.clear(); m_vProjectilePath.clear(); m_vBoxes.clear();
 
 		const int iResult = CanHit(tTarget, pLocal, pWeapon);
-		if (iResult != 1 && pWeapon->GetWeaponID() == TF_WEAPON_CANNON && Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::ChargeWeapon
+		if (iResult != 1 && bCannonCharge
 			&& !(G::OriginalCmd.buttons & (IN_ATTACK | IN_USE)))
 		{
 			float flTime = m_flTimeTo - GRENADE_CHECK_INTERVAL;
@@ -1955,12 +2048,12 @@ bool CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 				? pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime() - I::GlobalVars->curtime
 				: 1.f;
 			flCharge = floorf(flCharge / GRENADE_CHECK_INTERVAL) * GRENADE_CHECK_INTERVAL + F::ProjSim.GetDesync();
-			if (flCharge < flTime)
-			{
+			if (flCharge < flTime || bAutoDoubleDonk && flCharge <= GRENADE_CHECK_INTERVAL)
+			{	//	the fuse can no longer be shortened enough to get there, or it is about to run out - abort instead of letting it blow up in our face
 				if (pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime() > 0.f)
 					CancelShot(pLocal, pWeapon, pCmd, m_iLastTickCancel);
 			}
-			else
+			else if (!bAutoDoubleDonk || Vars::Aimbot::General::AutoShoot.Value || pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime() > 0.f)
 			{
 				pCmd->buttons |= IN_ATTACK;
 				if (m_iLastTickCancel)
@@ -1988,34 +2081,7 @@ bool CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 					pCmd->buttons &= ~IN_ATTACK;
 				break;
 			case TF_WEAPON_CANNON:
-				pCmd->buttons |= IN_ATTACK;
-				if (pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime() > 0.f)
-				{
-					if (m_iLastTickCancel)
-						pCmd->weaponselect = m_iLastTickCancel = 0;
-					if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::ChargeWeapon)
-					{	// rerun, if we won't hit in the future, fire
-						int iResult2 = 0;
-
-						float flCharge = pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime() - I::GlobalVars->curtime;
-						flCharge = floorf(flCharge / GRENADE_CHECK_INTERVAL) * GRENADE_CHECK_INTERVAL + F::ProjSim.GetDesync();
-						if (flCharge > GRENADE_CHECK_INTERVAL)
-						{
-							auto tTarget2 = tTarget;
-							float flOldDetonateTime = pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime();
-
-							pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime() -= GRENADE_CHECK_INTERVAL;
-							iResult2 = CanHit(tTarget2, pLocal, pWeapon, false);
-
-							pWeapon->As<CTFGrenadeLauncher>()->m_flDetonateTime() = flOldDetonateTime;
-						}
-
-						if (iResult2 != 1)
-							pCmd->buttons &= ~IN_ATTACK;
-					}
-					else
-						pCmd->buttons &= ~IN_ATTACK;
-				}
+				ChargeCannon(pLocal, pWeapon, pCmd, tTarget, iResult);
 				break;
 			case TF_WEAPON_BAT_WOOD:
 			case TF_WEAPON_BAT_GIFTWRAP:
@@ -2041,6 +2107,8 @@ bool CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 				pCmd->buttons |= IN_ATTACK;
 			}
 		}
+		else if (bAutoDoubleDonk)	//	auto shoot is off, only time the release of a ball the player primed himself
+			ChargeCannon(pLocal, pWeapon, pCmd, tTarget, iResult);
 
 		if (nWeaponID != TF_WEAPON_GRAPPLINGHOOK)
 			F::Aimbot.m_bRan = G::Attacking = SDK::IsAttacking(pLocal, pWeapon, pCmd, true);
@@ -2325,6 +2393,8 @@ bool CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBa
 
 
 
+	DetectEdgeSplash(tTarget.m_vPos);
+
 	Directs_t mDirects = GetDirects();
 	Splashes_t vSplashes = GetSplashes();
 
@@ -2421,7 +2491,9 @@ bool CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBa
 	}
 
 	m_iResult = false, m_bUpdate = true;
-	if (!m_tInfo.m_flRadius || Vars::Aimbot::Projectile::SplashPrediction.Value < Vars::Aimbot::Projectile::SplashPredictionEnum::Prefer)
+	const bool bEdgeSplash = m_bEdgePoints && !mSplashHistory.empty()
+		&& Vars::Aimbot::Projectile::EdgeSplash.Value > Vars::Aimbot::Projectile::EdgeSplashEnum::Off;
+	if (!m_tInfo.m_flRadius || (Vars::Aimbot::Projectile::SplashPrediction.Value < Vars::Aimbot::Projectile::SplashPredictionEnum::Prefer && !bEdgeSplash))
 		goto direct;
 	else
 		goto splash;

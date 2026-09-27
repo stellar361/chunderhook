@@ -615,23 +615,12 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 
 
 
-	int x = Vars::Menu::CritsDisplay.Value.x;
-	int y = Vars::Menu::CritsDisplay.Value.y + 8;
-	const auto& fFont = H::Fonts.GetFont(FONT_INDICATORS);
-	const int nTall = fFont.m_nTall + H::Draw.Scale(1);
-	y -= nTall;
-
-	EAlign align = ALIGN_TOP;
-	if (x <= 100 + H::Draw.Scale(50, Scale_Round))
-	{
-		x -= H::Draw.Scale(42, Scale_Round);
-		align = ALIGN_TOPLEFT;
-	}
-	else if (x >= H::Draw.m_nScreenW - 100 - H::Draw.Scale(50, Scale_Round))
-	{
-		x += H::Draw.Scale(42, Scale_Round);
-		align = ALIGN_TOPRIGHT;
-	}
+	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::CritsDisplay.Value);
+	const auto& fFont = *tInd.m_pFont;
+	const int nTall = tInd.m_iNTall;
+	int x = tInd.m_iX;
+	int y = tInd.m_iY - nTall;
+	EAlign align = tInd.m_eAlign;
 
 	if (!pWeapon->AreRandomCritsEnabled())
 	{
@@ -680,7 +669,7 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 	if (m_iPotentialCrits > 0)
 	{
 		int iCrits = m_iAvailableCrits;
-		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, align, std::format("{}{} / {} crits", iCrits, iCrits == BUCKET_ATTEMPTS ? "+" : "", m_iPotentialCrits).c_str());
+		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, align, std::format("{}{} / {} potential crits", iCrits, iCrits == BUCKET_ATTEMPTS ? "+" : "", m_iPotentialCrits).c_str());
 		
 		if (m_iNextCrit && iCrits)
 		{

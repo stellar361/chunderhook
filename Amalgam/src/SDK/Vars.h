@@ -310,6 +310,9 @@ NAMESPACE_BEGIN(Vars)
 			CVarEnum(SplashPrediction, VA_LIST("Splash", "Splash prediction"), 0, NONE, nullptr,
 				VA_LIST("Off", "Include", "Prefer", "Only"),
 				Off, Include, Prefer, Only);
+			CVarEnum(EdgeSplash, "Edge splash", 0, NONE, nullptr,
+				VA_LIST("Off", "Prefer", "Force"),
+				Off, Prefer, Force);
 			CVarEnum(AutoDetonate, "Auto detonate", 0b00, DROPDOWN_MULTI, "Off",
 				VA_LIST("Stickies", "Flares", "##Divider", "Prevent self damage", "Ignore invisible"),
 				Stickies = 1 << 0, Flares = 1 << 1, PreventSelfDamage = 1 << 2, IgnoreInvisible = 1 << 3);
@@ -327,6 +330,8 @@ NAMESPACE_BEGIN(Vars)
 			CVar(AutodetRadius, "Autodet radius", 90.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(SplashRadius, "Splash radius", 90.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(AutoRelease, "Auto release", 0.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 5.f, "%g%%");
+			CVar(AutoDoubleDonk, "Auto double donk", false);
+			CVar(DoubleDonkAbove, "Double donk above", 0.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 1000.f, 25.f, "%gms");
 
 			CVar(GroundSamples, "Samples", 33, NOSAVE | DEBUGVAR, 3, 66);
 			CVar(GroundStraightFuzzyValue, "Straight fuzzy value", 100.f, NOSAVE | DEBUGVAR | SLIDER_PRECISION, 0.f, 500.f, 25.f);
@@ -359,7 +364,7 @@ NAMESPACE_BEGIN(Vars)
 			CVar(HuntsmanPullPoint, "Huntsman pull point", false, NOSAVE | DEBUGVAR);
 			CVar(HuntsmanPullNoZ, "Pull no Z", false, NOSAVE | DEBUGVAR);
 
-			CVarEnum(SplashMode, "Splash mode", 0, NOSAVE | DEBUGVAR, nullptr,
+			CVarEnum(SplashMode, "Splash mode", 1, NONE, nullptr,
 				VA_LIST("Trace", "Face"),
 				Trace, Face);
 			CVar(SplashAirCount, "Splash air count", 0, NOSAVE | DEBUGVAR | SLIDER_MIN, 0, 10);
@@ -519,6 +524,8 @@ NAMESPACE_BEGIN(Vars)
 
 	NAMESPACE_BEGIN(ESP)
 		CVarValues(ActiveGroups, "Active groups", int(0b11111111111111111111111111111111), VISUAL | DROPDOWN_MULTI | DROPDOWN_NOSANITIZATION, nullptr);
+		CVar(HealthBarFlat, "Flat health bar color", false, VISUAL);
+		CVar(HealthBarColor, "Health bar color", Color_t(0, 255, 100, 255), VISUAL);
 	NAMESPACE_END(ESP)
 
 	NAMESPACE_BEGIN(Visuals)

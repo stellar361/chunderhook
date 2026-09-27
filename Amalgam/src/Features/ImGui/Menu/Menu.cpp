@@ -283,6 +283,8 @@ void CMenu::MenuAimbot(int iTab)
 				{
 					FDropdown(Vars::Aimbot::Projectile::StrafePrediction, FDropdownEnum::Left);
 					FDropdown(Vars::Aimbot::Projectile::SplashPrediction, FDropdownEnum::Right);
+					FDropdown(Vars::Aimbot::Projectile::EdgeSplash, FDropdownEnum::Left);
+					FDropdown(Vars::Aimbot::Projectile::SplashMode, FDropdownEnum::Right);
 					FDropdown(Vars::Aimbot::Projectile::AutoDetonate, FDropdownEnum::Left);
 					FDropdown(Vars::Aimbot::Projectile::AutoAirblast, FDropdownEnum::Right);
 					FDropdown(Vars::Aimbot::Projectile::Hitboxes, FDropdownEnum::Left);
@@ -295,6 +297,14 @@ void CMenu::MenuAimbot(int iTab)
 					PopTransparent();
 					FSlider(Vars::Aimbot::Projectile::AutodetRadius, FSliderEnum::Left);
 					FSlider(Vars::Aimbot::Projectile::SplashRadius, FSliderEnum::Right);
+					FToggle(Vars::Aimbot::Projectile::AutoDoubleDonk, FToggleEnum::Left);
+					FTooltip("Keeps the Loose Cannon primed and lets the ball go at the last moment where it still reaches the target, so the impact and the explosion land together (double donk)");
+					PushTransparent(!Vars::Aimbot::Projectile::AutoDoubleDonk.Value);
+					{
+						FSlider(Vars::Aimbot::Projectile::DoubleDonkAbove, FSliderEnum::Right);
+						FTooltip("Let the ball go right away instead of waiting for the donk timing when the shot lands sooner than this. 0 = always wait for the timing");
+					}
+					PopTransparent();
 					PushTransparent(!Vars::Aimbot::Projectile::AutoRelease.Value);
 					{
 						FSlider(Vars::Aimbot::Projectile::AutoRelease);
@@ -329,7 +339,6 @@ void CMenu::MenuAimbot(int iTab)
 						FText("Splash", { 5, 5 });
 						if (FPopupButton("Splash", { 0, -5 }, -8))
 						{
-							FDropdown(Vars::Aimbot::Projectile::SplashMode);
 							PushTransparent(Vars::Aimbot::Projectile::SplashMode.Value != Vars::Aimbot::Projectile::SplashModeEnum::Trace);
 							{
 								FSlider(Vars::Aimbot::Projectile::SplashPointsDirect, FSliderEnum::Left);
@@ -936,6 +945,8 @@ void CMenu::MenuVisuals(int iTab)
 				{
 					FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
 					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
+					FToggle(Vars::ESP::HealthBarFlat, FToggleEnum::Left);
+					FColorPicker(Vars::ESP::HealthBarColor, FColorPickerEnum::Right);
 				} EndSection();
 				if (Section("Targets"))
 				{
@@ -3881,12 +3892,83 @@ void CMenu::AddResizableDraggable(const char* sLabel, ConfigVar<WindowBox_t>& tV
 struct BindInfo_t
 {
 	const char* sName;
-	std::string sInfo;
+	std::string sType;
+	std::string sKey;
 	std::string sState;
 
 	int iBind;
 	Bind_t& tBind;
 };
+
+//	type and state columns are title cased, e.g. toggle -> Toggle, silent -> Silent
+static std::string CapitalizeFirst(std::string sText)
+{
+	if (!sText.empty() && sText[0] >= 'a' && sText[0] <= 'z')
+		sText[0] -= 'a' - 'A';
+	return sText;
+}
+
+//	state column: the current value of the first var this bind overrides
+//	bools show On / Off, enums show their label (aim type -> Off / Silent), numbers show their value (aim fov -> 180)
+static std::string GetBindState(const Bind_t& tBind)
+{
+	if (tBind.m_vVars.empty() || !tBind.m_vVars.front())
+		return tBind.m_bActive ? "On" : "Off";
+
+	auto pBase = tBind.m_vVars.front();
+	auto& vValues = pBase->m_vValues;
+
+	if (pBase->m_iType == typeid(bool).hash_code())
+	{
+		auto pVar = pBase->As<bool>();
+		return pVar && pVar->Value ? "On" : "Off";
+	}
+
+	if (pBase->m_iType == typeid(int).hash_code())
+	{
+		auto pVar = pBase->As<int>();
+		if (!pVar)
+			return tBind.m_bActive ? "On" : "Off";
+
+		if (vValues.empty())
+			return std::format("{}", pVar->Value);
+
+		if (pBase->m_iFlags & DROPDOWN_MULTI)
+		{
+			std::string sOut = {};
+			for (int i = 0; i < int(vValues.size()); i++)
+			{
+				if (!(pVar->Value & (1 << i)))
+					continue;
+				if (!sOut.empty())
+					sOut += ", ";
+				sOut += vValues[i];
+			}
+			return CapitalizeFirst(sOut.empty() ? "None" : sOut);
+		}
+
+		return CapitalizeFirst(vValues[std::clamp(pVar->Value, 0, int(vValues.size()) - 1)]);
+	}
+
+	if (pBase->m_iType == typeid(float).hash_code())
+	{
+		auto pVar = pBase->As<float>();
+		if (pVar)
+			return std::format("{}", pVar->Value);
+		return tBind.m_bActive ? "On" : "Off";
+	}
+
+	if (pBase->m_iType == typeid(std::string).hash_code())
+	{
+		auto pVar = pBase->As<std::string>();
+		if (pVar && !pVar->Value.empty())
+			return pVar->Value;
+		return tBind.m_bActive ? "On" : "Off";
+	}
+
+	return tBind.m_bActive ? "On" : "Off";
+}
+
 void CMenu::DrawBinds()
 {
 	using namespace ImGui;
@@ -3975,7 +4057,7 @@ void CMenu::DrawBinds()
 				if (tBind.m_bNot && (tBind.m_iType != BindEnum::Key || tBind.m_iInfo == BindEnum::KeyEnum::Hold))
 					sInfo = std::format("not {}", sInfo);
 
-				vInfo.emplace_back(tBind.m_sName.c_str(), sType, sInfo, iBind, tBind);
+				vInfo.emplace_back(tBind.m_sName.c_str(), CapitalizeFirst(sType), sInfo, GetBindState(tBind), iBind, tBind);
 			}
 
 			if (tBind.m_bActive || m_bIsOpen)
@@ -3991,18 +4073,19 @@ void CMenu::DrawBinds()
 	if (tDragBox != tOld)
 		SetNextWindowPos({ float(tDragBox.x), float(tDragBox.y) }, ImGuiCond_Always);
 
-	float flNameWidth = 0, flInfoWidth = 0, flStateWidth = 0;
+	float flTypeWidth = 0, flNameWidth = 0, flKeyWidth = 0, flStateWidth = 0;
 	PushFont(F::Render.FontSmall);
-	for (auto& [sName, sInfo, sState, iBind, tBind] : vInfo)
+	for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 	{
+		flTypeWidth = std::max(flTypeWidth, FCalcTextSize(sType.c_str()).x);
 		flNameWidth = std::max(flNameWidth, FCalcTextSize(sName).x);
-		flInfoWidth = std::max(flInfoWidth, FCalcTextSize(sInfo.c_str()).x);
+		flKeyWidth = std::max(flKeyWidth, FCalcTextSize(sKey.c_str()).x);
 		flStateWidth = std::max(flStateWidth, FCalcTextSize(sState.c_str()).x);
 	}
 	PopFont();
-	flNameWidth += H::Draw.Scale(9), flInfoWidth += H::Draw.Scale(9), flStateWidth += H::Draw.Scale(9);
+	flTypeWidth += H::Draw.Scale(9), flNameWidth += H::Draw.Scale(9), flKeyWidth += H::Draw.Scale(9), flStateWidth += H::Draw.Scale(9);
 
-	float flWidth = flNameWidth + flInfoWidth + flStateWidth + (m_bIsOpen ? H::Draw.Scale(113) : H::Draw.Scale(14));
+	float flWidth = flTypeWidth + flNameWidth + flKeyWidth + flStateWidth + (m_bIsOpen ? H::Draw.Scale(113) : H::Draw.Scale(14));
 	float flHeight = H::Draw.Scale(18 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 42 : 12));
 	SetNextWindowSize({ flWidth, flHeight }, ImGuiCond_Always);
 	PushStyleVar(ImGuiStyleVar_WindowMinSize, { H::Draw.Scale(40), H::Draw.Scale(40) });
@@ -4033,23 +4116,30 @@ void CMenu::DrawBinds()
 		}
 
 		PushFont(F::Render.FontSmall);
-		int i = 0; for (auto& [sName, sInfo, sState, iBind, tBind] : vInfo)
+		int i = 0; for (auto& [sName, sType, sKey, sState, iBind, tBind] : vInfo)
 		{
 			float flPosX = 0;
 
 			if (m_bIsOpen)
 				PushTransparent(!F::Binds.WillBeEnabled(iBind), true);
 
+			/* type */
 			SetCursorPos({ flPosX += H::Draw.Scale(12), H::Draw.Scale(iListStart + 18 * i) });
 			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Accent.Value : F::Render.Inactive.Value);
-			FText(sName);
+			FText(sType.c_str());
 			PopStyleColor();
 
-			SetCursorPos({ flPosX += flNameWidth, H::Draw.Scale(iListStart + 18 * i) });
+			/* name + keybind */
+			SetCursorPos({ flPosX += flTypeWidth, H::Draw.Scale(iListStart + 18 * i) });
 			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Active.Value : F::Render.Inactive.Value);
-			FText(sInfo.c_str());
+			FText(sName);
+			SetCursorPos({ flPosX += flNameWidth, H::Draw.Scale(iListStart + 18 * i) });
+			FText(sKey.c_str());
+			PopStyleColor();
 
-			SetCursorPos({ flPosX += flInfoWidth, H::Draw.Scale(iListStart + 18 * i) });
+			/* state */
+			SetCursorPos({ flPosX += flKeyWidth, H::Draw.Scale(iListStart + 18 * i) });
+			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Accent.Value : F::Render.Inactive.Value);
 			FText(sState.c_str());
 			PopStyleColor();
 

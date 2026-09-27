@@ -424,22 +424,12 @@ void CBacktrack::Draw(CTFPlayer* pLocal)
 	float flLatency = std::max(pNetChan->GetLatency(FLOW_INCOMING) + pNetChan->GetLatency(FLOW_OUTGOING) - flFakeLatency, 0.f) * 1000;
 	int iLatencyScoreboard = pResource->m_iPing(I::EngineClient->GetLocalPlayer());
 
-	int x = Vars::Menu::PingDisplay.Value.x;
-	int y = Vars::Menu::PingDisplay.Value.y + 8;
-	const auto& fFont = H::Fonts.GetFont(FONT_INDICATORS);
-	const int nTall = fFont.m_nTall + H::Draw.Scale(1);
-
-	EAlign align = ALIGN_TOP;
-	if (x <= 100 + H::Draw.Scale(50, Scale_Round))
-	{
-		x -= H::Draw.Scale(42, Scale_Round);
-		align = ALIGN_TOPLEFT;
-	}
-	else if (x >= H::Draw.m_nScreenW - 100 - H::Draw.Scale(50, Scale_Round))
-	{
-		x += H::Draw.Scale(42, Scale_Round);
-		align = ALIGN_TOPRIGHT;
-	}
+	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::PingDisplay.Value);
+	const auto& fFont = *tInd.m_pFont;
+	const int nTall = tInd.m_iNTall;
+	int x = tInd.m_iX;
+	int y = tInd.m_iY;
+	EAlign align = tInd.m_eAlign;
 
 	if (flFake || Vars::Backtrack::Interp.Value > G::Lerp * 1000)
 		H::Draw.StringOutlined(fFont, x, y, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, align, std::format("Ping {:.0f} (+ {:.0f}) ms", flLatency, flFake).c_str());

@@ -50,12 +50,14 @@ struct Setup_t
 {
 	Vec3 m_vPoint = {};
 	uint8_t m_iType = PointTypeEnum::Geometry;
+	bool m_bEdge = false;	//	sits on the silhouette edge of the geometry rather than its face
 };
 struct Point_t
 {
 	Vec3 m_vPoint = {};
 	Solution_t m_tSolution = {};
 	uint8_t m_iType = PointTypeEnum::Direct;
+	bool m_bEdge = false;
 };
 
 struct Offset_t
@@ -97,11 +99,14 @@ private:
 	void CalculateAngle(const Vec3& vLocalPos, const Vec3& vTargetPos, int iSimTime, Solution_t& tOut, uint8_t iFlags = CalculateFlagsEnum::Accuracy, int iTolerance = -1);
 	bool TestAngle(const Vec3& vPoint, const Vec3& vAngles, int iSimTime, uint8_t iType, uint8_t iFlags, bool bSecondTest = false);
 
+	bool DetectEdgeSplash(Vec3 vOrigin);
+
 	bool HandlePoint(const Vec3& vOrigin, int iSimTime, float flPitch, float flYaw, float flTime, const Vec3& vPoint, uint8_t iType = PointTypeEnum::Direct, uint8_t iFlags = PointFlagsEnum::Regular);
 	bool HandleDirect(DirectHistory_t& vDirectHistory);
 	bool HandleSplash(SplashHistory_t& vSplashHistory);
 
 	int CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* pWeapon, bool bUpdate = true);
+	void ChargeCannon(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, Target_t& tTarget, int iResult);
 	bool RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd);
 
 	bool CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEntity* pProjectile);
@@ -114,6 +119,7 @@ private:
 	MoveStorage m_tMoveStorage = {};
 	ProjectileInfo m_tProjInfo = {};
 	std::vector<Setup_t> m_vSplashPoints = {};
+	bool m_bEdgePoints = false;
 
 	bool m_bLastTickHeld = false;
 

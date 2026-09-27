@@ -89,6 +89,29 @@ Vec2 CDraw::GetTextSize(const wchar_t* text, const Font_t& tFont)
 	return { float(w), float(h) };
 }
 
+IndicatorLayout_t CDraw::GetIndicatorLayout(const DragBox_t& tPos)
+{
+	IndicatorLayout_t tLayout = {};
+	tLayout.m_pFont = &H::Fonts.GetFont(FONT_INDICATORS);
+	tLayout.m_iX = tPos.x;
+	tLayout.m_iY = tPos.y + 8;
+	tLayout.m_iNTall = tLayout.m_pFont->m_nTall + H::Draw.Scale(1);
+	tLayout.m_eAlign = ALIGN_TOP;
+
+	if (tLayout.m_iX <= 100 + Scale(50, Scale_Round))
+	{
+		tLayout.m_iX -= Scale(42, Scale_Round);
+		tLayout.m_eAlign = ALIGN_TOPLEFT;
+	}
+	else if (tLayout.m_iX >= m_nScreenW - 100 - Scale(50, Scale_Round))
+	{
+		tLayout.m_iX += Scale(42, Scale_Round);
+		tLayout.m_eAlign = ALIGN_TOPRIGHT;
+	}
+
+	return tLayout;
+}
+
 static wchar_t s_wstr[1024] = { '\0' };
 void CDraw::String(const Font_t& tFont, int x, int y, Color_t tColor, EAlign eAlign, const char* str)
 {

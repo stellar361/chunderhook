@@ -6,6 +6,9 @@
 #include "../../Simulation/MovementSimulation/MovementSimulation.h"
 #include "../../Simulation/ProjectileSimulation/ProjectileSimulation.h"
 
+//	overheal overfill segment drawn on health bars
+static const Color_t s_tOverhealColor = { 255, 255, 255, 255 };
+
 static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* pGroup, std::unordered_map<CBaseEntity*, PlayerCache_t>& mCache)
 {
 	int iIndex = pPlayer->entindex();
@@ -44,7 +47,7 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 			if (pGroup->m_iESP & ESPEnum::Priority)
 			{
 				if (auto pTag = F::PlayerUtils.GetSignificantTag(uAccountID, 1))
-					tCache.m_vText.emplace_back(ALIGN_TOP, pTag->m_sName, pTag->m_tColor, pTag->m_tColor.IsColorDark() ? Color_t(255, 255, 255) : Color_t(0, 0, 0));
+					tCache.m_vText.emplace_back(ALIGN_TOP, pTag->m_sName, pTag->m_tColor, pTag->m_tColor.IsColorDark() ? Color_t(255, 255, 255) : Color_t(0, 0, 0), FONT_INDICATORS);
 			}
 
 			if (pGroup->m_iESP & ESPEnum::Labels)
@@ -99,16 +102,19 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 	}
 
 	float flHealth = pPlayer->m_iHealth(), flMaxHealth = pPlayer->GetMaxHealth();
+	bool bOverhealed = flHealth > flMaxHealth;
 	if (pGroup->m_iESP & ESPEnum::HealthBar)
 	{
-		tCache.m_flHealth = flHealth > flMaxHealth
+		tCache.m_flHealth = bOverhealed
 			? 1.f + std::clamp((flHealth - flMaxHealth) / (floorf(flMaxHealth / 10.f) * 5), 0.f, 1.f)
 			: std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
-		Color_t tColor = Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f), LerpEnum::HSV);
-		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, Vars::Colors::IndicatorMisc.Value);
+		Color_t tColor = Vars::ESP::HealthBarFlat.Value
+			? Vars::ESP::HealthBarColor.Value
+			: Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f), LerpEnum::HSV);
+		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, s_tOverhealColor);
 	}
 	if (pGroup->m_iESP & ESPEnum::HealthText)
-		tCache.m_vText.emplace_back(ALIGN_LEFT, std::format("{}", flHealth), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+		tCache.m_vText.emplace_back(ALIGN_LEFT, bOverhealed ? std::format("+{}", int(flHealth - flMaxHealth)) : std::format("{}", int(flHealth)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
 	if (pGroup->m_iESP & (ESPEnum::UberBar | ESPEnum::UberText) && iClassNum == TF_CLASS_MEDIC)
 	{
@@ -158,6 +164,8 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 	}
 
 	// Buffs
+	//	condition tags draw with the indicator font (same as the nitro dt bar)
+	size_t uConditionStart = tCache.m_vText.size();
 	if (pGroup->m_iESP & ESPEnum::Buffs)
 	{
 		if (pPlayer->InCond(TF_COND_INVULNERABLE) ||
@@ -296,6 +304,8 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 		if (pPlayer->InCond(TF_COND_BLEEDING))
 			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Bleed", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 	}
+	for (size_t i = uConditionStart; i < tCache.m_vText.size(); i++)
+		tCache.m_vText[i].m_iFont = FONT_INDICATORS;
 
 	// Misc
 	if (pGroup->m_iESP & ESPEnum::Flags)
@@ -410,8 +420,10 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 	if (pGroup->m_iESP & ESPEnum::HealthBar)
 	{
 		tCache.m_flHealth = std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
-		Color_t tColor = Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f), LerpEnum::HSV);
-		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, Vars::Colors::IndicatorMisc.Value);
+		Color_t tColor = Vars::ESP::HealthBarFlat.Value
+			? Vars::ESP::HealthBarColor.Value
+			: Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f), LerpEnum::HSV);
+		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, s_tOverhealColor);
 	}
 	if (pGroup->m_iESP & ESPEnum::HealthText)
 		tCache.m_vText.emplace_back(ALIGN_LEFT, std::format("{}", flHealth), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
@@ -825,27 +837,29 @@ void CESP::DrawPlayers()
 			}
 		}
 
-		for (auto& [iMode, sText, tColor, tOutline] : tCache.m_vText)
+		for (auto& [iMode, sText, tColor, tOutline, iFont] : tCache.m_vText)
 		{
+			const auto& tFont = iFont == FONT_ESP ? fFont : H::Fonts.GetFont(EFonts(iFont));
+			const int iNTall = iFont == FONT_ESP ? nTall : tFont.m_nTall + H::Draw.Scale(2);
 			switch (iMode)
 			{
 			case ALIGN_TOP:
-				H::Draw.StringOutlined(fFont, m, t - tOffset, tColor, tOutline, ALIGN_BOTTOM, sText.c_str());
-				tOffset += nTall;
+				H::Draw.StringOutlined(tFont, m, t - tOffset, tColor, tOutline, ALIGN_BOTTOM, sText.c_str());
+				tOffset += iNTall;
 				break;
 			case ALIGN_BOTTOM:
-				H::Draw.StringOutlined(fFont, m, b + bOffset, tColor, tOutline, ALIGN_TOP, sText.c_str());
-				bOffset += nTall;
+				H::Draw.StringOutlined(tFont, m, b + bOffset, tColor, tOutline, ALIGN_TOP, sText.c_str());
+				bOffset += iNTall;
 				break;
 			case ALIGN_LEFT:
-				H::Draw.StringOutlined(fFont, l - lOffset, y - H::Draw.Scale(2) + h - h * std::min(tCache.m_flHealth, 1.f), tColor, tOutline, ALIGN_TOPRIGHT, sText.c_str());
+				H::Draw.StringOutlined(tFont, l - lOffset, y - H::Draw.Scale(2) + h - h * std::min(tCache.m_flHealth, 1.f), tColor, tOutline, ALIGN_TOPRIGHT, sText.c_str());
 				break;
 			case ALIGN_TOPRIGHT:
-				H::Draw.StringOutlined(fFont, r, y - H::Draw.Scale(2) + rOffset, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
-				rOffset += nTall;
+				H::Draw.StringOutlined(tFont, r, y - H::Draw.Scale(2) + rOffset, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
+				rOffset += iNTall;
 				break;
 			case ALIGN_BOTTOMRIGHT:
-				H::Draw.StringOutlined(fFont, r, y + h, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
+				H::Draw.StringOutlined(tFont, r, y + h, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
 				break;
 			}
 		}
@@ -928,27 +942,29 @@ void CESP::DrawBuildings()
 			}
 		}
 
-		for (auto& [iMode, sText, tColor, tOutline] : tCache.m_vText)
+		for (auto& [iMode, sText, tColor, tOutline, iFont] : tCache.m_vText)
 		{
+			const auto& tFont = iFont == FONT_ESP ? fFont : H::Fonts.GetFont(EFonts(iFont));
+			const int iNTall = iFont == FONT_ESP ? nTall : tFont.m_nTall + H::Draw.Scale(2);
 			switch (iMode)
 			{
 			case ALIGN_TOP:
-				H::Draw.StringOutlined(fFont, m, t - tOffset, tColor, tOutline, ALIGN_BOTTOM, sText.c_str());
-				tOffset += nTall;
+				H::Draw.StringOutlined(tFont, m, t - tOffset, tColor, tOutline, ALIGN_BOTTOM, sText.c_str());
+				tOffset += iNTall;
 				break;
 			case ALIGN_BOTTOM:
-				H::Draw.StringOutlined(fFont, m, b + bOffset, tColor, tOutline, ALIGN_TOP, sText.c_str());
-				bOffset += nTall;
+				H::Draw.StringOutlined(tFont, m, b + bOffset, tColor, tOutline, ALIGN_TOP, sText.c_str());
+				bOffset += iNTall;
 				break;
 			case ALIGN_LEFT:
-				H::Draw.StringOutlined(fFont, l - lOffset, y - H::Draw.Scale(2) + h - h * std::min(tCache.m_flHealth, 1.f), tColor, tOutline, ALIGN_TOPRIGHT, sText.c_str());
+				H::Draw.StringOutlined(tFont, l - lOffset, y - H::Draw.Scale(2) + h - h * std::min(tCache.m_flHealth, 1.f), tColor, tOutline, ALIGN_TOPRIGHT, sText.c_str());
 				break;
 			case ALIGN_TOPRIGHT:
-				H::Draw.StringOutlined(fFont, r, y - H::Draw.Scale(2) + rOffset, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
-				rOffset += nTall;
+				H::Draw.StringOutlined(tFont, r, y - H::Draw.Scale(2) + rOffset, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
+				rOffset += iNTall;
 				break;
 			case ALIGN_BOTTOMRIGHT:
-				H::Draw.StringOutlined(fFont, r, y + h, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
+				H::Draw.StringOutlined(tFont, r, y + h, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
 				break;
 			}
 		}
@@ -979,21 +995,23 @@ void CESP::DrawWorld()
 			H::Draw.LineRectOutline(x, y, w, h, tCache.m_tColor, { 0, 0, 0, 255 });
 
 
-		for (auto& [iMode, sText, tColor, tOutline] : tCache.m_vText)
+		for (auto& [iMode, sText, tColor, tOutline, iFont] : tCache.m_vText)
 		{
+			const auto& tFont = iFont == FONT_ESP ? fFont : H::Fonts.GetFont(EFonts(iFont));
+			const int iNTall = iFont == FONT_ESP ? nTall : tFont.m_nTall + H::Draw.Scale(2);
 			switch (iMode)
 			{
 			case ALIGN_TOP:
-				H::Draw.StringOutlined(fFont, m, t - tOffset, tColor, tOutline, ALIGN_BOTTOM, sText.c_str());
-				tOffset += nTall;
+				H::Draw.StringOutlined(tFont, m, t - tOffset, tColor, tOutline, ALIGN_BOTTOM, sText.c_str());
+				tOffset += iNTall;
 				break;
 			case ALIGN_BOTTOM:
-				H::Draw.StringOutlined(fFont, m, b + bOffset, tColor, tOutline, ALIGN_TOP, sText.c_str());
-				bOffset += nTall;
+				H::Draw.StringOutlined(tFont, m, b + bOffset, tColor, tOutline, ALIGN_TOP, sText.c_str());
+				bOffset += iNTall;
 				break;
 			case ALIGN_TOPRIGHT:
-				H::Draw.StringOutlined(fFont, r, y - H::Draw.Scale(2) + rOffset, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
-				rOffset += nTall;
+				H::Draw.StringOutlined(tFont, r, y - H::Draw.Scale(2) + rOffset, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
+				rOffset += iNTall;
 				break;
 			}
 		}

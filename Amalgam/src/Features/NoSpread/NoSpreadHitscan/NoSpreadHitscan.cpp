@@ -202,22 +202,12 @@ void CNoSpreadHitscan::Draw(CTFPlayer* pLocal)
 	if (!(Vars::Menu::Indicators.Value & Vars::Menu::IndicatorsEnum::SeedPrediction) || !ShouldRun() || !pLocal->IsAlive())
 		return;
 
-	int x = Vars::Menu::SeedPredictionDisplay.Value.x;
-	int y = Vars::Menu::SeedPredictionDisplay.Value.y + 8;
-	const auto& fFont = H::Fonts.GetFont(FONT_INDICATORS);
-	const int nTall = fFont.m_nTall + H::Draw.Scale(1);
-
-	EAlign align = ALIGN_TOP;
-	if (x <= 100 + H::Draw.Scale(50, Scale_Round))
-	{
-		x -= H::Draw.Scale(42, Scale_Round);
-		align = ALIGN_TOPLEFT;
-	}
-	else if (x >= H::Draw.m_nScreenW - 100 - H::Draw.Scale(50, Scale_Round))
-	{
-		x += H::Draw.Scale(42, Scale_Round);
-		align = ALIGN_TOPRIGHT;
-	}
+	const auto tInd = H::Draw.GetIndicatorLayout(Vars::Menu::SeedPredictionDisplay.Value);
+	const auto& fFont = *tInd.m_pFont;
+	const int nTall = tInd.m_iNTall;
+	int x = tInd.m_iX;
+	int y = tInd.m_iY;
+	EAlign align = tInd.m_eAlign;
 
 	const auto& cColor = m_bSynced ? Vars::Menu::Theme::Active.Value : Vars::Menu::Theme::Inactive.Value;
 

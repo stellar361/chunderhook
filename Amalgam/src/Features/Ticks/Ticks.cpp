@@ -413,29 +413,32 @@ void CTicks::Draw(CTFPlayer* pLocal)
 
 	const DragBox_t dtPos = Vars::Menu::TicksDisplay.Value;
 	const auto& fFont = H::Fonts.GetFont(FONT_INDICATORS);
+	const int nTall = fFont.m_nTall;
 
 	if (m_bSpeedhack)
 		return H::Draw.StringOutlined(fFont, dtPos.x, dtPos.y + 2, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, std::format("Speedhack x{}", Vars::Speedhack::Scale.Value).c_str());
-	
+
 	int iAntiAimTicks = F::AntiAim.YawOn() ? F::AntiAim.AntiAimTicks() : 0;
 	int iTicks = std::clamp(m_iShiftedTicks + std::max(I::ClientState->chokedcommands - iAntiAimTicks, 0), 0, m_iMaxUsrCmdProcessTicks);
 	int iMax = std::max(m_iMaxUsrCmdProcessTicks - iAntiAimTicks, 0);
 
-	float flRatio = float(iTicks) / float(iMax);
-	int iSizeX = H::Draw.Scale(100, Scale_Round), iSizeY = H::Draw.Scale(12, Scale_Round);
-	int iPosX = dtPos.x - iSizeX / 2, iPosY = dtPos.y + fFont.m_nTall + H::Draw.Scale(4) + 1;
+	// nitro style bar
+	const int iSizeX = H::Draw.Scale(100, Scale_Round), iSizeY = H::Draw.Scale(12, Scale_Round);
+	const int iRadius = H::Draw.Scale(4, Scale_Round);
+	const int iPosX = dtPos.x - iSizeX / 2, iPosY = dtPos.y;
 
-	H::Draw.StringOutlined(fFont, dtPos.x, dtPos.y + 2, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, std::format("Ticks {} / {}", iTicks, iMax).c_str());
+	H::Draw.StringOutlined(fFont, dtPos.x, iPosY - nTall - H::Draw.Scale(3, Scale_Round), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, std::format("Ticks {} / {}", iTicks, iMax).c_str());
 	if (m_iWait)
-		H::Draw.StringOutlined(fFont, dtPos.x, dtPos.y + fFont.m_nTall + H::Draw.Scale(18, Scale_Round) + 1, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, "Not Ready");
+		H::Draw.StringOutlined(fFont, dtPos.x, iPosY + nTall + iSizeY, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, "Not Ready");
 
-	H::Draw.LineRoundRect(iPosX, iPosY, iSizeX, iSizeY, H::Draw.Scale(4, Scale_Round), Vars::Menu::Theme::Accent.Value, 16);
-	if (flRatio)
+	H::Draw.FillRoundRect(iPosX, iPosY, iSizeX, iSizeY, iRadius, Vars::Menu::Theme::Background.Value, 16);
+	if (iTicks > 0)
 	{
-		iSizeX -= H::Draw.Scale(2, Scale_Ceil) * 2, iSizeY -= H::Draw.Scale(2, Scale_Ceil) * 2;
-		iPosX += H::Draw.Scale(2, Scale_Round), iPosY += H::Draw.Scale(2, Scale_Round);
-		H::Draw.StartClipping(iPosX, iPosY, iSizeX * flRatio, iSizeY);
-		H::Draw.FillRoundRect(iPosX, iPosY, iSizeX, iSizeY, H::Draw.Scale(3, Scale_Round), Vars::Menu::Theme::Accent.Value, 16);
-		H::Draw.EndClipping();
+		const int iInset = H::Draw.Scale(2, Scale_Round);
+		const int iFillX = iPosX + iInset, iFillY = iPosY + iInset;
+		const int iFillH = iSizeY - iInset * 2;
+		const int iFillW = iMax > 0 ? std::clamp(int((float(iTicks) / float(iMax)) * (iSizeX - iInset * 2)), 0, iSizeX - iInset * 2) : 0;
+		if (iFillW > 0)
+			H::Draw.FillRoundRect(iFillX, iFillY, iFillW, iFillH, std::min(iRadius, std::min(iFillW, iFillH) / 2), Vars::Menu::Theme::Accent.Value, 16);
 	}
 }
